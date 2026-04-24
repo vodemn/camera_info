@@ -1,0 +1,27 @@
+name: camera_info
+description: "Exposes per-camera optical metadata on iOS and Android: equivalent focal length, zoom range, exposure offset range and step, and main-camera identification."
+version: 0.0.1
+homepage: https://github.com/Vodemn/camera_info
+
+environment:
+  sdk: ^3.5.4
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  pigeon: ^22.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.vodemn.camera_info
+        pluginClass: CameraInfoPlugin
+      ios:
+        pluginClass: CameraInfoPlugin

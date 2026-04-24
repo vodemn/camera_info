@@ -1,0 +1,43 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Claude Code
+.claude/
+
+# Flutter/Dart/Pub related
+# Libraries should not include pubspec.lock, per https://dart.dev/guides/libraries/private-files#pubspeclock.
+**/pubspec.lock
+**/doc/api/
+.dart_tool/
+build/
+
+# Android local properties (contains SDK path)
+android/local.properties
+example/android/local.properties
+
+# iOS CocoaPods lock — example is a dev harness, not a production app
+example/ios/Podfile.lock
+
+# Test coverage
+coverage/
+
+# Merge artifacts
+*.orig
