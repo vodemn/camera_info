@@ -1,0 +1,82 @@
+name: Release
+
+run-name: Release v${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version"
+        required: true
+        type: string
+      publish:
+        description: "Publish to pub.dev"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - uses: flutter-actions/setup-flutter@v4
+        if: ${{ inputs.publish }}
+        with:
+          channel: stable
+
+      - name: Publish dry-run
+        if: ${{ inputs.publish }}
+        run: dart pub publish --dry-run
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --unreleased --tag v${{ inputs.version }}
+        env:
+          OUTPUT: RELEASE_NOTES.md
+
+      - name: Prepend to CHANGELOG.md
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            cat RELEASE_NOTES.md CHANGELOG.md > CHANGELOG_TMP.md && mv CHANGELOG_TMP.md CHANGELOG.md
+          else
+            cp RELEASE_NOTES.md CHANGELOG.md
+          fi
+
+      - name: Set version
+        run: bash .github/scripts/set_version.sh ${{ inputs.version }}
+
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml ios/camera_info.podspec README.md CHANGELOG.md
+          git commit -m "Release v${{ inputs.version }}"
+          git push origin ${{ github.ref_name }}
+
+      - name: Create and push tag
+        run: |
+          git tag v${{ inputs.version }}
+          git push origin v${{ inputs.version }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v${{ inputs.version }} \
+            --title "v${{ inputs.version }}" \
+            --notes-file RELEASE_NOTES.md
+
+      - name: Publish to pub.dev
+        if: ${{ inputs.publish }}
+        run: dart pub publish --force
