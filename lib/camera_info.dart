@@ -15,6 +15,7 @@ class CameraLensCapabilities {
     required this.maxZoomFactor,
     required this.minExposureOffset,
     required this.maxExposureOffset,
+    required this.isMain,
     this.equivalentFocalLength,
     this.minZoomFactor,
     this.exposureOffsetStepSize,
@@ -40,6 +41,9 @@ class CameraLensCapabilities {
 
   /// Smallest EV step for exposure compensation. Android only; null on iOS.
   final double? exposureOffsetStepSize;
+
+  /// True if this is the main (wide-angle back) camera.
+  final bool isMain;
 }
 
 /// Provides access to per-camera optical metadata on iOS and Android.
@@ -112,6 +116,20 @@ class CameraCapabilities {
     return _sharedCache!;
   }
 
+  /// Returns capabilities for the main (wide-angle back) camera, or null if
+  /// none is identified as main.
+  Future<CameraLensCapabilities?> get mainCameraCapabilities async {
+    return (await getCameraCapabilities()).where((c) => c.isMain).firstOrNull;
+  }
+
+  /// Synchronously returns the cached main camera capabilities, or null if
+  /// none is identified as main.
+  ///
+  /// Throws [StateError] if [getCameraCapabilities] has not been awaited yet.
+  CameraLensCapabilities? get mainCameraCapabilitiesSync {
+    return cameraCapabilitiesSync.where((c) => c.isMain).firstOrNull;
+  }
+
   /// Returns optical capabilities for every camera, mapped to the shared
   /// [CameraLensCapabilities] model.
   ///
@@ -152,6 +170,7 @@ class CameraCapabilities {
         maxZoomFactor: c.maxZoomFactor,
         minExposureOffset: c.minExposureOffset,
         maxExposureOffset: c.maxExposureOffset,
+        isMain: c.isMain,
       );
 
   CameraLensCapabilities _fromAndroid(AndroidCameraLensCapabilities c) => CameraLensCapabilities(
@@ -162,5 +181,6 @@ class CameraCapabilities {
         minExposureOffset: c.minExposureOffset,
         maxExposureOffset: c.maxExposureOffset,
         exposureOffsetStepSize: c.exposureOffsetStepSize,
+        isMain: c.isMain,
       );
 }

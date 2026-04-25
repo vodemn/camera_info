@@ -14,20 +14,20 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  List<CameraLensCapabilities> _cameras = [];
+  List<CameraLensInfo> _cameras = [];
   String _status = 'Loading...';
-  final _plugin = CameraCapabilities();
+  final _plugin = CameraInfo();
 
   @override
   void initState() {
     super.initState();
-    _loadCapabilities();
+    _loadCameraInfo();
   }
 
-  Future<void> _loadCapabilities() async {
-    List<CameraLensCapabilities> cameras;
+  Future<void> _loadCameraInfo() async {
+    List<CameraLensInfo> cameras;
     try {
-      cameras = await _plugin.getCameraCapabilities();
+      cameras = await _plugin.getCameraInfo();
     } on PlatformException catch (e) {
       setState(() => _status = 'Error: ${e.message}');
       return;
@@ -56,8 +56,14 @@ class _MyAppState extends State<MyApp> {
                     CameraLensPosition.back     => 'Back',
                     CameraLensPosition.external => 'External',
                   };
+                  final title = cam.isMain
+                      ? '$positionLabel (Main)'
+                      : positionLabel;
                   return ListTile(
-                    title: Text('Camera ${i + 1} ($positionLabel)'),
+                    leading: cam.isMain
+                        ? const Icon(Icons.star, color: Colors.amber)
+                        : const Icon(Icons.camera_alt_outlined),
+                    title: Text(title),
                     subtitle: Text(
                       'EFL: ${cam.equivalentFocalLength?.toStringAsFixed(1) ?? 'n/a'} mm\n'
                       'Zoom: ${cam.minZoomFactor?.toStringAsFixed(1) ?? 'n/a'}x – ${cam.maxZoomFactor.toStringAsFixed(1)}x\n'

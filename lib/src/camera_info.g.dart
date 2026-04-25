@@ -23,14 +23,15 @@ PlatformException _createConnectionError(String channelName) {
   );
 }
 
-class IosCameraLensCapabilities {
-  IosCameraLensCapabilities({
+class IosCameraLensInfo {
+  IosCameraLensInfo({
     required this.equivalentFocalLength,
     required this.minZoomFactor,
     required this.maxZoomFactor,
     required this.minExposureOffset,
     required this.maxExposureOffset,
     required this.position,
+    required this.isMain,
   });
 
   /// 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
@@ -51,6 +52,9 @@ class IosCameraLensCapabilities {
   /// Which side of the device this camera faces. AVCaptureDevice.position.
   CameraLensPosition position;
 
+  /// True if this is the main (wide-angle back) camera. AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back).
+  bool isMain;
+
   Object encode() {
     return <Object?>[
       equivalentFocalLength,
@@ -59,24 +63,26 @@ class IosCameraLensCapabilities {
       minExposureOffset,
       maxExposureOffset,
       position.index,
+      isMain,
     ];
   }
 
-  static IosCameraLensCapabilities decode(Object result) {
+  static IosCameraLensInfo decode(Object result) {
     result as List<Object?>;
-    return IosCameraLensCapabilities(
+    return IosCameraLensInfo(
       equivalentFocalLength: result[0]! as double,
       minZoomFactor: result[1]! as double,
       maxZoomFactor: result[2]! as double,
       minExposureOffset: result[3]! as double,
       maxExposureOffset: result[4]! as double,
       position: CameraLensPosition.values[result[5]! as int],
+      isMain: result[6]! as bool,
     );
   }
 }
 
-class AndroidCameraLensCapabilities {
-  AndroidCameraLensCapabilities({
+class AndroidCameraLensInfo {
+  AndroidCameraLensInfo({
     this.equivalentFocalLength,
     this.minZoomFactor,
     required this.maxZoomFactor,
@@ -84,6 +90,7 @@ class AndroidCameraLensCapabilities {
     required this.maxExposureOffset,
     required this.exposureOffsetStepSize,
     required this.position,
+    required this.isMain,
   });
 
   /// 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable.
@@ -107,6 +114,9 @@ class AndroidCameraLensCapabilities {
   /// Which side of the device this camera faces. CameraCharacteristics.LENS_FACING.
   CameraLensPosition position;
 
+  /// True if this is the main (first back-facing) camera. Camera ID matches the first LENS_FACING_BACK camera in cameraIdList.
+  bool isMain;
+
   Object encode() {
     return <Object?>[
       equivalentFocalLength,
@@ -116,12 +126,13 @@ class AndroidCameraLensCapabilities {
       maxExposureOffset,
       exposureOffsetStepSize,
       position.index,
+      isMain,
     ];
   }
 
-  static AndroidCameraLensCapabilities decode(Object result) {
+  static AndroidCameraLensInfo decode(Object result) {
     result as List<Object?>;
-    return AndroidCameraLensCapabilities(
+    return AndroidCameraLensInfo(
       equivalentFocalLength: result[0] as double?,
       minZoomFactor: result[1] as double?,
       maxZoomFactor: result[2]! as double,
@@ -129,6 +140,7 @@ class AndroidCameraLensCapabilities {
       maxExposureOffset: result[4]! as double,
       exposureOffsetStepSize: result[5]! as double,
       position: CameraLensPosition.values[result[6]! as int],
+      isMain: result[7]! as bool,
     );
   }
 }
@@ -141,10 +153,10 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is IosCameraLensCapabilities) {
+    }    else if (value is IosCameraLensInfo) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
-    }    else if (value is AndroidCameraLensCapabilities) {
+    }    else if (value is AndroidCameraLensInfo) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
     } else {
@@ -155,10 +167,10 @@ class _PigeonCodec extends StandardMessageCodec {
   @override
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
-      case 129: 
-        return IosCameraLensCapabilities.decode(readValue(buffer)!);
-      case 130: 
-        return AndroidCameraLensCapabilities.decode(readValue(buffer)!);
+      case 129:
+        return IosCameraLensInfo.decode(readValue(buffer)!);
+      case 130:
+        return AndroidCameraLensInfo.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -178,9 +190,9 @@ class CameraInfoIosHostApi {
 
   final String pigeonVar_messageChannelSuffix;
 
-  /// Returns optical capabilities for every camera available on the device (iOS).
-  Future<List<IosCameraLensCapabilities>> getCameraCapabilities() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.camera_info.CameraInfoIosHostApi.getCameraCapabilities$pigeonVar_messageChannelSuffix';
+  /// Returns optical info for every camera available on the device (iOS).
+  Future<List<IosCameraLensInfo>> getCameraInfo() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.camera_info.CameraInfoIosHostApi.getCameraInfo$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -202,7 +214,7 @@ class CameraInfoIosHostApi {
         message: 'Host platform returned null value for non-null return value.',
       );
     } else {
-      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<IosCameraLensCapabilities>();
+      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<IosCameraLensInfo>();
     }
   }
 }
@@ -220,9 +232,9 @@ class CameraInfoAndroidHostApi {
 
   final String pigeonVar_messageChannelSuffix;
 
-  /// Returns optical capabilities for every camera available on the device (Android).
-  Future<List<AndroidCameraLensCapabilities>> getCameraCapabilities() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.camera_info.CameraInfoAndroidHostApi.getCameraCapabilities$pigeonVar_messageChannelSuffix';
+  /// Returns optical info for every camera available on the device (Android).
+  Future<List<AndroidCameraLensInfo>> getCameraInfo() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.camera_info.CameraInfoAndroidHostApi.getCameraInfo$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -244,7 +256,7 @@ class CameraInfoAndroidHostApi {
         message: 'Host platform returned null value for non-null return value.',
       );
     } else {
-      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<AndroidCameraLensCapabilities>();
+      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<AndroidCameraLensInfo>();
     }
   }
 }

@@ -4,9 +4,9 @@ import 'package:pigeon/pigeon.dart';
   dartOut: 'lib/src/camera_info.g.dart',
   dartOptions: DartOptions(),
   kotlinOut:
-      'android/src/main/kotlin/com/vodemn/camera_info/CameraCapabilitiesApi.g.kt',
+      'android/src/main/kotlin/com/vodemn/camera_info/CameraInfoApi.g.kt',
   kotlinOptions: KotlinOptions(package: 'com.vodemn.camera_info'),
-  swiftOut: 'ios/Classes/CameraCapabilitiesApi.g.swift',
+  swiftOut: 'ios/Classes/CameraInfoApi.g.swift',
   swiftOptions: SwiftOptions(),
 ))
 
@@ -17,7 +17,7 @@ enum CameraLensPosition {
   external,
 }
 
-class IosCameraLensCapabilities {
+class IosCameraLensInfo {
   /// 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
   late double equivalentFocalLength;
 
@@ -35,9 +35,12 @@ class IosCameraLensCapabilities {
 
   /// Which side of the device this camera faces. AVCaptureDevice.position.
   late CameraLensPosition position;
+
+  /// True if this is the main (wide-angle back) camera. AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back).
+  late bool isMain;
 }
 
-class AndroidCameraLensCapabilities {
+class AndroidCameraLensInfo {
   /// 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable.
   double? equivalentFocalLength;
 
@@ -58,16 +61,19 @@ class AndroidCameraLensCapabilities {
 
   /// Which side of the device this camera faces. CameraCharacteristics.LENS_FACING.
   late CameraLensPosition position;
+
+  /// True if this is the main (first back-facing) camera. Camera ID matches the first LENS_FACING_BACK camera in cameraIdList.
+  late bool isMain;
 }
 
 @HostApi()
 abstract class CameraInfoIosHostApi {
-  /// Returns optical capabilities for every camera available on the device (iOS).
-  List<IosCameraLensCapabilities> getCameraCapabilities();
+  /// Returns optical info for every camera available on the device (iOS).
+  List<IosCameraLensInfo> getCameraInfo();
 }
 
 @HostApi()
 abstract class CameraInfoAndroidHostApi {
-  /// Returns optical capabilities for every camera available on the device (Android).
-  List<AndroidCameraLensCapabilities> getCameraCapabilities();
+  /// Returns optical info for every camera available on the device (Android).
+  List<AndroidCameraLensInfo> getCameraInfo();
 }

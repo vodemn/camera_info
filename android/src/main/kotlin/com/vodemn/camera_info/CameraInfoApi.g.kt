@@ -58,7 +58,7 @@ class FlutterError (
 ) : Throwable()
 
 /** Generated class from Pigeon that represents data sent in messages. */
-data class IosCameraLensCapabilities (
+data class IosCameraLensInfo (
   /** 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView. */
   val equivalentFocalLength: Double,
   /** Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor. */
@@ -70,18 +70,21 @@ data class IosCameraLensCapabilities (
   /** Maximum exposure offset in EV. AVCaptureDevice.maxExposureTargetBias. */
   val maxExposureOffset: Double,
   /** Which side of the device this camera faces. AVCaptureDevice.position. */
-  val position: CameraLensPosition
+  val position: CameraLensPosition,
+  /** True if this is the main (wide-angle back) camera. AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back). */
+  val isMain: Boolean
 )
  {
   companion object {
-    fun fromList(pigeonVar_list: List<Any?>): IosCameraLensCapabilities {
+    fun fromList(pigeonVar_list: List<Any?>): IosCameraLensInfo {
       val equivalentFocalLength = pigeonVar_list[0] as Double
       val minZoomFactor = pigeonVar_list[1] as Double
       val maxZoomFactor = pigeonVar_list[2] as Double
       val minExposureOffset = pigeonVar_list[3] as Double
       val maxExposureOffset = pigeonVar_list[4] as Double
       val position = CameraLensPosition.ofRaw(pigeonVar_list[5] as Int)!!
-      return IosCameraLensCapabilities(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, position)
+      val isMain = pigeonVar_list[6] as Boolean
+      return IosCameraLensInfo(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, position, isMain)
     }
   }
   fun toList(): List<Any?> {
@@ -92,12 +95,13 @@ data class IosCameraLensCapabilities (
       minExposureOffset,
       maxExposureOffset,
       position.raw,
+      isMain,
     )
   }
 }
 
 /** Generated class from Pigeon that represents data sent in messages. */
-data class AndroidCameraLensCapabilities (
+data class AndroidCameraLensInfo (
   /** 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable. */
   val equivalentFocalLength: Double? = null,
   /** Minimum zoom factor. 1.0 for the main back camera; null for other cameras. */
@@ -111,11 +115,13 @@ data class AndroidCameraLensCapabilities (
   /** Smallest EV step for exposure compensation. CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP. */
   val exposureOffsetStepSize: Double,
   /** Which side of the device this camera faces. CameraCharacteristics.LENS_FACING. */
-  val position: CameraLensPosition
+  val position: CameraLensPosition,
+  /** True if this is the main (first back-facing) camera. Camera ID matches the first LENS_FACING_BACK camera in cameraIdList. */
+  val isMain: Boolean
 )
  {
   companion object {
-    fun fromList(pigeonVar_list: List<Any?>): AndroidCameraLensCapabilities {
+    fun fromList(pigeonVar_list: List<Any?>): AndroidCameraLensInfo {
       val equivalentFocalLength = pigeonVar_list[0] as Double?
       val minZoomFactor = pigeonVar_list[1] as Double?
       val maxZoomFactor = pigeonVar_list[2] as Double
@@ -123,7 +129,8 @@ data class AndroidCameraLensCapabilities (
       val maxExposureOffset = pigeonVar_list[4] as Double
       val exposureOffsetStepSize = pigeonVar_list[5] as Double
       val position = CameraLensPosition.ofRaw(pigeonVar_list[6] as Int)!!
-      return AndroidCameraLensCapabilities(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, exposureOffsetStepSize, position)
+      val isMain = pigeonVar_list[7] as Boolean
+      return AndroidCameraLensInfo(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, exposureOffsetStepSize, position, isMain)
     }
   }
   fun toList(): List<Any?> {
@@ -135,6 +142,7 @@ data class AndroidCameraLensCapabilities (
       maxExposureOffset,
       exposureOffsetStepSize,
       position.raw,
+      isMain,
     )
   }
 }
@@ -143,12 +151,12 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          IosCameraLensCapabilities.fromList(it)
+          IosCameraLensInfo.fromList(it)
         }
       }
       130.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          AndroidCameraLensCapabilities.fromList(it)
+          AndroidCameraLensInfo.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -156,11 +164,11 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is IosCameraLensCapabilities -> {
+      is IosCameraLensInfo -> {
         stream.write(129)
         writeValue(stream, value.toList())
       }
-      is AndroidCameraLensCapabilities -> {
+      is AndroidCameraLensInfo -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
@@ -171,8 +179,8 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
 
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface CameraInfoIosHostApi {
-  /** Returns optical capabilities for every camera available on the device (iOS). */
-  fun getCameraCapabilities(): List<IosCameraLensCapabilities>
+  /** Returns optical info for every camera available on the device (iOS). */
+  fun getCameraInfo(): List<IosCameraLensInfo>
 
   companion object {
     /** The codec used by CameraInfoIosHostApi. */
@@ -184,11 +192,11 @@ interface CameraInfoIosHostApi {
     fun setUp(binaryMessenger: BinaryMessenger, api: CameraInfoIosHostApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.camera_info.CameraInfoIosHostApi.getCameraCapabilities$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.camera_info.CameraInfoIosHostApi.getCameraInfo$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
-              listOf(api.getCameraCapabilities())
+              listOf(api.getCameraInfo())
             } catch (exception: Throwable) {
               wrapError(exception)
             }
@@ -203,8 +211,8 @@ interface CameraInfoIosHostApi {
 }
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface CameraInfoAndroidHostApi {
-  /** Returns optical capabilities for every camera available on the device (Android). */
-  fun getCameraCapabilities(): List<AndroidCameraLensCapabilities>
+  /** Returns optical info for every camera available on the device (Android). */
+  fun getCameraInfo(): List<AndroidCameraLensInfo>
 
   companion object {
     /** The codec used by CameraInfoAndroidHostApi. */
@@ -216,11 +224,11 @@ interface CameraInfoAndroidHostApi {
     fun setUp(binaryMessenger: BinaryMessenger, api: CameraInfoAndroidHostApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.camera_info.CameraInfoAndroidHostApi.getCameraCapabilities$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.camera_info.CameraInfoAndroidHostApi.getCameraInfo$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
-              listOf(api.getCameraCapabilities())
+              listOf(api.getCameraInfo())
             } catch (exception: Throwable) {
               wrapError(exception)
             }

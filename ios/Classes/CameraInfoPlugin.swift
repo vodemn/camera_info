@@ -8,7 +8,7 @@ public class CameraInfoPlugin: NSObject, FlutterPlugin, CameraInfoIosHostApi {
     CameraInfoIosHostApiSetup.setUp(binaryMessenger: registrar.messenger(), api: instance)
   }
 
-  func getCameraCapabilities() throws -> [IosCameraLensCapabilities] {
+  func getCameraInfo() throws -> [IosCameraLensInfo] {
     var deviceTypes: [AVCaptureDevice.DeviceType] = [
       .builtInWideAngleCamera,
       .builtInTelephotoCamera,
@@ -21,6 +21,7 @@ public class CameraInfoPlugin: NSObject, FlutterPlugin, CameraInfoIosHostApi {
       mediaType: .video,
       position: .unspecified
     )
+    let mainDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
     return session.devices.map { device in
       let fovRadians = Double(device.activeFormat.videoFieldOfView) * .pi / 180.0
       let efl = 18.0 / tan(fovRadians / 2.0)
@@ -29,13 +30,14 @@ public class CameraInfoPlugin: NSObject, FlutterPlugin, CameraInfoIosHostApi {
         case .back: .back
         default: .external
       }
-      return IosCameraLensCapabilities(
+      return IosCameraLensInfo(
         equivalentFocalLength: efl,
         minZoomFactor: Double(device.minAvailableVideoZoomFactor),
         maxZoomFactor: Double(device.maxAvailableVideoZoomFactor),
         minExposureOffset: Double(device.minExposureTargetBias),
         maxExposureOffset: Double(device.maxExposureTargetBias),
-        position: position
+        position: position,
+        isMain: device == mainDevice
       )
     }
   }

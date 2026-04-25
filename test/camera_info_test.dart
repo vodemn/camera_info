@@ -8,6 +8,7 @@ final _iosLens = IosCameraLensCapabilities(
   maxZoomFactor: 6.0,
   minExposureOffset: -8.0,
   maxExposureOffset: 8.0,
+  isMain: true,
 );
 
 final _androidLens = AndroidCameraLensCapabilities(
@@ -18,6 +19,7 @@ final _androidLens = AndroidCameraLensCapabilities(
   minExposureOffset: -2.0,
   maxExposureOffset: 2.0,
   exposureOffsetStepSize: 0.5,
+  isMain: false,
 );
 
 void main() {
@@ -28,6 +30,7 @@ void main() {
         maxZoomFactor: 1.0,
         minExposureOffset: -2.0,
         maxExposureOffset: 2.0,
+        isMain: true,
       );
       expect(caps.equivalentFocalLength, isNull);
       expect(caps.minZoomFactor, isNull);
@@ -43,6 +46,7 @@ void main() {
         minExposureOffset: -2.0,
         maxExposureOffset: 2.0,
         exposureOffsetStepSize: 0.5,
+        isMain: false,
       );
       expect(caps.position, CameraLensPosition.front);
       expect(caps.equivalentFocalLength, 26.0);
@@ -51,6 +55,7 @@ void main() {
       expect(caps.minExposureOffset, -2.0);
       expect(caps.maxExposureOffset, 2.0);
       expect(caps.exposureOffsetStepSize, 0.5);
+      expect(caps.isMain, isFalse);
     });
   });
 
@@ -91,6 +96,7 @@ void main() {
       expect(lens.minExposureOffset, _iosLens.minExposureOffset);
       expect(lens.maxExposureOffset, _iosLens.maxExposureOffset);
       expect(lens.exposureOffsetStepSize, isNull);
+      expect(lens.isMain, _iosLens.isMain);
     });
 
     test('getCameraCapabilities maps mock Android data to shared model', () async {
@@ -105,6 +111,14 @@ void main() {
       expect(lens.minExposureOffset, _androidLens.minExposureOffset);
       expect(lens.maxExposureOffset, _androidLens.maxExposureOffset);
       expect(lens.exposureOffsetStepSize, _androidLens.exposureOffsetStepSize);
+      expect(lens.isMain, _androidLens.isMain);
+    });
+
+    test('mainCameraCapabilities returns the lens with isMain == true', () async {
+      CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
+      final main = await api.mainCameraCapabilities;
+      expect(main, isNotNull);
+      expect(main!.isMain, isTrue);
     });
 
     test('getCameraCapabilities result is cached across calls', () async {
