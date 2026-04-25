@@ -47,17 +47,31 @@ class CameraCapabilities {
   final _iosApi = CameraInfoIosHostApi();
   final _androidApi = CameraInfoAndroidHostApi();
 
+  static List<IosCameraLensCapabilities>? _iosCache;
+  static List<AndroidCameraLensCapabilities>? _androidCache;
+  static List<CameraLensCapabilities>? _sharedCache;
+
   /// Returns optical capabilities for every camera on iOS.
   ///
   /// All fields are non-nullable — AVFoundation always provides them.
-  Future<List<IosCameraLensCapabilities>> get iosCameraCapabilities =>
-      _iosApi.getCameraCapabilities();
+  Future<List<IosCameraLensCapabilities>> get iosCameraCapabilities async {
+    if (_iosCache != null) return _iosCache!;
+    if (!Platform.isIOS) {
+      throw UnsupportedError('iOS capabilities are not available on this platform');
+    }
+    return _iosCache ??= await _iosApi.getCameraCapabilities();
+  }
 
   /// Returns optical capabilities for every camera on Android.
   ///
   /// Some fields are nullable — see [AndroidCameraLensCapabilities] for details.
-  Future<List<AndroidCameraLensCapabilities>> get androidCameraCapabilities =>
-      _androidApi.getCameraCapabilities();
+  Future<List<AndroidCameraLensCapabilities>> get androidCameraCapabilities async {
+    if (_androidCache != null) return _androidCache!;
+    if (!Platform.isAndroid) {
+      throw UnsupportedError('Android capabilities are not available on this platform');
+    }
+    return _androidCache ??= await _androidApi.getCameraCapabilities();
+  }
 
   /// Returns optical capabilities for every camera, mapped to the shared
   /// [CameraLensCapabilities] model.
@@ -65,15 +79,34 @@ class CameraCapabilities {
   /// Use [iosCameraCapabilities] or [androidCameraCapabilities] for full
   /// platform-specific detail with precise nullability.
   Future<List<CameraLensCapabilities>> getCameraCapabilities() async {
-    if (Platform.isIOS) {
-      return (await iosCameraCapabilities).map(_fromIos).toList();
+    if (_sharedCache != null) return _sharedCache!;
+    if (_iosCache != null || Platform.isIOS) {
+      _sharedCache = (await iosCameraCapabilities).map(_fromIos).toList();
+    } else if (_androidCache != null || Platform.isAndroid) {
+      _sharedCache = (await androidCameraCapabilities).map(_fromAndroid).toList();
     } else {
-      return (await androidCameraCapabilities).map(_fromAndroid).toList();
+      throw UnsupportedError('Unsupported platform');
     }
+    return _sharedCache!;
   }
 
-  CameraLensCapabilities _fromIos(IosCameraLensCapabilities c) =>
-      CameraLensCapabilities(
+  /// Overrides the cached values returned by this class.
+  ///
+  /// Intended for use in tests. Pass null for any cache you want to leave
+  /// unset (it will be fetched from the platform on the next call).
+  static void setMockInitialValues({
+    List<IosCameraLensCapabilities>? iosCapabilities,
+    List<AndroidCameraLensCapabilities>? androidCapabilities,
+  }) {
+    assert(
+      iosCapabilities != null || androidCapabilities != null,
+      'At least one of the cached capabilities must be provided.',
+    );
+    _iosCache = iosCapabilities;
+    _androidCache = androidCapabilities;
+  }
+
+  CameraLensCapabilities _fromIos(IosCameraLensCapabilities c) => CameraLensCapabilities(
         position: c.position,
         equivalentFocalLength: c.equivalentFocalLength,
         minZoomFactor: c.minZoomFactor,
@@ -82,8 +115,7 @@ class CameraCapabilities {
         maxExposureOffset: c.maxExposureOffset,
       );
 
-  CameraLensCapabilities _fromAndroid(AndroidCameraLensCapabilities c) =>
-      CameraLensCapabilities(
+  CameraLensCapabilities _fromAndroid(AndroidCameraLensCapabilities c) => CameraLensCapabilities(
         position: c.position,
         equivalentFocalLength: c.equivalentFocalLength,
         minZoomFactor: c.minZoomFactor,
