@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:camera_info/camera_info.dart';
 
-final _iosLens = IosCameraLensCapabilities(
+final _iosLens = IosCameraLensInfo(
   position: CameraLensPosition.back,
   equivalentFocalLength: 26.0,
   minZoomFactor: 1.0,
@@ -11,7 +11,7 @@ final _iosLens = IosCameraLensCapabilities(
   isMain: true,
 );
 
-final _androidLens = AndroidCameraLensCapabilities(
+final _androidLens = AndroidCameraLensInfo(
   position: CameraLensPosition.front,
   equivalentFocalLength: 22.0,
   minZoomFactor: 1.0,
@@ -23,9 +23,9 @@ final _androidLens = AndroidCameraLensCapabilities(
 );
 
 void main() {
-  group('CameraLensCapabilities', () {
+  group('CameraLensInfo', () {
     test('nullable fields default to null', () {
-      const caps = CameraLensCapabilities(
+      const caps = CameraLensInfo(
         position: CameraLensPosition.back,
         maxZoomFactor: 1.0,
         minExposureOffset: -2.0,
@@ -38,7 +38,7 @@ void main() {
     });
 
     test('all fields are set correctly', () {
-      const caps = CameraLensCapabilities(
+      const caps = CameraLensInfo(
         position: CameraLensPosition.front,
         equivalentFocalLength: 26.0,
         minZoomFactor: 1.0,
@@ -67,26 +67,26 @@ void main() {
     });
   });
 
-  group('CameraCapabilities caching', () {
-    final api = CameraCapabilities();
+  group('CameraInfo caching', () {
+    final api = CameraInfo();
 
-    setUp(() => CameraCapabilities.setMockInitialValues());
+    setUp(() => CameraInfo.setMockInitialValues());
 
-    test('iosCameraCapabilities returns mock iOS data without a platform call', () async {
-      CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
-      final result = await api.iosCameraCapabilities;
+    test('getIosCameraInfo returns mock iOS data without a platform call', () async {
+      CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
+      final result = await api.getIosCameraInfo();
       expect(result, [_iosLens]);
     });
 
-    test('androidCameraCapabilities returns mock Android data without a platform call', () async {
-      CameraCapabilities.setMockInitialValues(androidCapabilities: [_androidLens]);
-      final result = await api.androidCameraCapabilities;
+    test('getAndroidCameraInfo returns mock Android data without a platform call', () async {
+      CameraInfo.setMockInitialValues(androidInfo: [_androidLens]);
+      final result = await api.getAndroidCameraInfo();
       expect(result, [_androidLens]);
     });
 
-    test('getCameraCapabilities maps mock iOS data to shared model', () async {
-      CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
-      final result = await api.getCameraCapabilities();
+    test('getCameraInfo maps mock iOS data to shared model', () async {
+      CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
+      final result = await api.getCameraInfo();
       expect(result, hasLength(1));
       final lens = result.first;
       expect(lens.position, _iosLens.position);
@@ -99,9 +99,9 @@ void main() {
       expect(lens.isMain, _iosLens.isMain);
     });
 
-    test('getCameraCapabilities maps mock Android data to shared model', () async {
-      CameraCapabilities.setMockInitialValues(androidCapabilities: [_androidLens]);
-      final result = await api.getCameraCapabilities();
+    test('getCameraInfo maps mock Android data to shared model', () async {
+      CameraInfo.setMockInitialValues(androidInfo: [_androidLens]);
+      final result = await api.getCameraInfo();
       expect(result, hasLength(1));
       final lens = result.first;
       expect(lens.position, _androidLens.position);
@@ -114,82 +114,82 @@ void main() {
       expect(lens.isMain, _androidLens.isMain);
     });
 
-    test('mainCameraCapabilities returns the lens with isMain == true', () async {
-      CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
-      final main = await api.mainCameraCapabilities;
+    test('getMainCameraInfo returns the lens with isMain == true', () async {
+      CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
+      final main = await api.getMainCameraInfo();
       expect(main, isNotNull);
       expect(main!.isMain, isTrue);
     });
 
-    test('getCameraCapabilities result is cached across calls', () async {
-      CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
-      final first = await api.getCameraCapabilities();
-      final second = await api.getCameraCapabilities();
+    test('getCameraInfo result is cached across calls', () async {
+      CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
+      final first = await api.getCameraInfo();
+      final second = await api.getCameraInfo();
       expect(identical(first, second), isTrue);
     });
 
     group('synchronous getters', () {
-      test('iosCameraCapabilitiesSync throws StateError when not initialized', () {
+      test('iosCameraInfo throws StateError when not initialized', () {
         expect(
-          () => api.iosCameraCapabilitiesSync,
+          () => api.iosCameraInfo,
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
-            contains('iosCameraCapabilities'),
+            contains('getIosCameraInfo'),
           )),
         );
       });
 
-      test('androidCameraCapabilitiesSync throws StateError when not initialized', () {
+      test('androidCameraInfo throws StateError when not initialized', () {
         expect(
-          () => api.androidCameraCapabilitiesSync,
+          () => api.androidCameraInfo,
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
-            contains('androidCameraCapabilities'),
+            contains('getAndroidCameraInfo'),
           )),
         );
       });
 
-      test('cameraCapabilitiesSync throws StateError when not initialized', () {
+      test('cameraInfo throws StateError when not initialized', () {
         expect(
-          () => api.cameraCapabilitiesSync,
+          () => api.cameraInfo,
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
-            contains('getCameraCapabilities'),
+            contains('getCameraInfo'),
           )),
         );
       });
 
-      test('iosCameraCapabilitiesSync returns cached value after async call', () async {
-        CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
-        await api.iosCameraCapabilities;
-        expect(api.iosCameraCapabilitiesSync, [_iosLens]);
+      test('iosCameraInfo returns cached value after async call', () async {
+        CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
+        await api.getIosCameraInfo();
+        expect(api.iosCameraInfo, [_iosLens]);
       });
 
-      test('androidCameraCapabilitiesSync returns cached value after async call', () async {
-        CameraCapabilities.setMockInitialValues(androidCapabilities: [_androidLens]);
-        await api.androidCameraCapabilities;
-        expect(api.androidCameraCapabilitiesSync, [_androidLens]);
+      test('androidCameraInfo returns cached value after async call', () async {
+        CameraInfo.setMockInitialValues(androidInfo: [_androidLens]);
+        await api.getAndroidCameraInfo();
+        expect(api.androidCameraInfo, [_androidLens]);
       });
 
-      test('cameraCapabilitiesSync returns cached value after async call', () async {
-        CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
-        await api.getCameraCapabilities();
-        expect(api.cameraCapabilitiesSync, hasLength(1));
-        expect(api.cameraCapabilitiesSync.first.position, _iosLens.position);
+      test('cameraInfo returns cached value after async call', () async {
+        CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
+        await api.getCameraInfo();
+        expect(api.cameraInfo, hasLength(1));
+        expect(api.cameraInfo.first.position, _iosLens.position);
       });
     });
 
     test('setMockInitialValues clears cache when called with no arguments', () async {
-      CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
-      await api.iosCameraCapabilities; // populate _iosCache
+      CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
+      await api.getIosCameraInfo(); // populate _iosCache
 
-      CameraCapabilities.setMockInitialValues(); // clear
+      CameraInfo.setMockInitialValues(); // clear
       // Without a platform (test host is macOS) and without a mock, the next
       // call must throw — proving the cache was cleared.
-      expect(() => api.iosCameraCapabilities, throwsA(isA<UnsupportedError>()));
+      expect(() => api.getIosCameraInfo(), throwsA(isA<UnsupportedError>()));
     });
   });
 }
