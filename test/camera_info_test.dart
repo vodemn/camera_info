@@ -114,6 +114,60 @@ void main() {
       expect(identical(first, second), isTrue);
     });
 
+    group('synchronous getters', () {
+      test('iosCameraCapabilitiesSync throws StateError when not initialized', () {
+        expect(
+          () => api.iosCameraCapabilitiesSync,
+          throwsA(isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('iosCameraCapabilities'),
+          )),
+        );
+      });
+
+      test('androidCameraCapabilitiesSync throws StateError when not initialized', () {
+        expect(
+          () => api.androidCameraCapabilitiesSync,
+          throwsA(isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('androidCameraCapabilities'),
+          )),
+        );
+      });
+
+      test('cameraCapabilitiesSync throws StateError when not initialized', () {
+        expect(
+          () => api.cameraCapabilitiesSync,
+          throwsA(isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('getCameraCapabilities'),
+          )),
+        );
+      });
+
+      test('iosCameraCapabilitiesSync returns cached value after async call', () async {
+        CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
+        await api.iosCameraCapabilities;
+        expect(api.iosCameraCapabilitiesSync, [_iosLens]);
+      });
+
+      test('androidCameraCapabilitiesSync returns cached value after async call', () async {
+        CameraCapabilities.setMockInitialValues(androidCapabilities: [_androidLens]);
+        await api.androidCameraCapabilities;
+        expect(api.androidCameraCapabilitiesSync, [_androidLens]);
+      });
+
+      test('cameraCapabilitiesSync returns cached value after async call', () async {
+        CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
+        await api.getCameraCapabilities();
+        expect(api.cameraCapabilitiesSync, hasLength(1));
+        expect(api.cameraCapabilitiesSync.first.position, _iosLens.position);
+      });
+    });
+
     test('setMockInitialValues clears cache when called with no arguments', () async {
       CameraCapabilities.setMockInitialValues(iosCapabilities: [_iosLens]);
       await api.iosCameraCapabilities; // populate _iosCache

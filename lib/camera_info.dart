@@ -73,6 +73,45 @@ class CameraCapabilities {
     return _androidCache ??= await _androidApi.getCameraCapabilities();
   }
 
+  /// Synchronously returns the cached iOS capabilities.
+  ///
+  /// Throws [StateError] if [iosCameraCapabilities] has not been awaited yet.
+  List<IosCameraLensCapabilities> get iosCameraCapabilitiesSync {
+    if (_iosCache == null) {
+      throw StateError(
+        'iOS camera capabilities are not initialized. '
+        'Await iosCameraCapabilities before calling iosCameraCapabilitiesSync.',
+      );
+    }
+    return _iosCache!;
+  }
+
+  /// Synchronously returns the cached Android capabilities.
+  ///
+  /// Throws [StateError] if [androidCameraCapabilities] has not been awaited yet.
+  List<AndroidCameraLensCapabilities> get androidCameraCapabilitiesSync {
+    if (_androidCache == null) {
+      throw StateError(
+        'Android camera capabilities are not initialized. '
+        'Await androidCameraCapabilities before calling androidCameraCapabilitiesSync.',
+      );
+    }
+    return _androidCache!;
+  }
+
+  /// Synchronously returns the cached shared capabilities.
+  ///
+  /// Throws [StateError] if [getCameraCapabilities] has not been awaited yet.
+  List<CameraLensCapabilities> get cameraCapabilitiesSync {
+    if (_sharedCache == null) {
+      throw StateError(
+        'Camera capabilities are not initialized. '
+        'Await getCameraCapabilities before calling cameraCapabilitiesSync.',
+      );
+    }
+    return _sharedCache!;
+  }
+
   /// Returns optical capabilities for every camera, mapped to the shared
   /// [CameraLensCapabilities] model.
   ///
