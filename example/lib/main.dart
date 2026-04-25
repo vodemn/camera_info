@@ -51,14 +51,18 @@ class _MyAppState extends State<MyApp> {
                 separatorBuilder: (_, __) => const Divider(),
                 itemBuilder: (context, i) {
                   final cam = _cameras[i];
+                  final positionLabel = switch (cam.position) {
+                    CameraLensPosition.front    => 'Front',
+                    CameraLensPosition.back     => 'Back',
+                    CameraLensPosition.external => 'External',
+                  };
                   return ListTile(
-                    title: Text('Camera ${i + 1}'),
+                    title: Text('Camera ${i + 1} ($positionLabel)'),
                     subtitle: Text(
-                      'Focal length: ${cam.focalLength?.toStringAsFixed(1) ?? 'n/a'} mm\n'
-                      'Aperture: f/${cam.aperture?.toStringAsFixed(1) ?? 'n/a'}\n'
-                      'FOV: ${cam.fieldOfView?.toStringAsFixed(1) ?? 'n/a'}°\n'
-                      'Zoom: ${cam.minZoomFactor?.toStringAsFixed(1) ?? 'n/a'}x – ${cam.maxZoomFactor?.toStringAsFixed(1) ?? 'n/a'}x\n'
-                      'EV step: ${cam.exposureOffsetStepSize ?? 'n/a'}',
+                      'EFL: ${cam.equivalentFocalLength?.toStringAsFixed(1) ?? 'n/a'} mm\n'
+                      'Zoom: ${cam.minZoomFactor?.toStringAsFixed(1) ?? 'n/a'}x – ${cam.maxZoomFactor.toStringAsFixed(1)}x\n'
+                      'Exposure: ${cam.minExposureOffset.toStringAsFixed(1)} – ${cam.maxExposureOffset.toStringAsFixed(1)} EV\n'
+                      'EV step: ${cam.exposureOffsetStepSize?.toStringAsFixed(2) ?? 'n/a'}',
                     ),
                   );
                 },

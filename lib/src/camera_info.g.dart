@@ -8,6 +8,14 @@ import 'dart:typed_data' show Float64List, Int32List, Int64List, Uint8List;
 import 'package:flutter/foundation.dart' show ReadBuffer, WriteBuffer;
 import 'package:flutter/services.dart';
 
+/// Which side of the device a camera faces.
+enum CameraLensPosition {
+  front,
+  back,
+  external,
+  ;
+}
+
 PlatformException _createConnectionError(String channelName) {
   return PlatformException(
     code: 'channel-error',
@@ -15,54 +23,112 @@ PlatformException _createConnectionError(String channelName) {
   );
 }
 
-class CameraLensCapabilities {
-  CameraLensCapabilities({
-    this.focalLength,
-    this.aperture,
-    this.fieldOfView,
-    this.minZoomFactor,
-    this.maxZoomFactor,
-    this.exposureOffsetStepSize,
+class IosCameraLensCapabilities {
+  IosCameraLensCapabilities({
+    required this.equivalentFocalLength,
+    required this.minZoomFactor,
+    required this.maxZoomFactor,
+    required this.minExposureOffset,
+    required this.maxExposureOffset,
+    required this.position,
   });
 
-  /// Focal length of the lens in millimetres.
-  double? focalLength;
+  /// 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
+  double equivalentFocalLength;
 
-  /// Maximum aperture of the lens as an f-number (e.g. 1.8 means f/1.8).
-  double? aperture;
+  /// Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor.
+  double minZoomFactor;
 
-  /// Horizontal field of view in degrees.
-  double? fieldOfView;
+  /// Maximum zoom factor. AVCaptureDevice.maxAvailableVideoZoomFactor.
+  double maxZoomFactor;
 
-  /// Minimum supported zoom factor (optical + digital).
-  double? minZoomFactor;
+  /// Minimum exposure offset in EV. AVCaptureDevice.minExposureTargetBias.
+  double minExposureOffset;
 
-  /// Maximum supported zoom factor (optical + digital).
-  double? maxZoomFactor;
+  /// Maximum exposure offset in EV. AVCaptureDevice.maxExposureTargetBias.
+  double maxExposureOffset;
 
-  /// Smallest step by which exposure compensation can be changed (in EV).
-  double? exposureOffsetStepSize;
+  /// Which side of the device this camera faces. AVCaptureDevice.position.
+  CameraLensPosition position;
 
   Object encode() {
     return <Object?>[
-      focalLength,
-      aperture,
-      fieldOfView,
+      equivalentFocalLength,
       minZoomFactor,
       maxZoomFactor,
-      exposureOffsetStepSize,
+      minExposureOffset,
+      maxExposureOffset,
+      position.index,
     ];
   }
 
-  static CameraLensCapabilities decode(Object result) {
+  static IosCameraLensCapabilities decode(Object result) {
     result as List<Object?>;
-    return CameraLensCapabilities(
-      focalLength: result[0] as double?,
-      aperture: result[1] as double?,
-      fieldOfView: result[2] as double?,
-      minZoomFactor: result[3] as double?,
-      maxZoomFactor: result[4] as double?,
-      exposureOffsetStepSize: result[5] as double?,
+    return IosCameraLensCapabilities(
+      equivalentFocalLength: result[0]! as double,
+      minZoomFactor: result[1]! as double,
+      maxZoomFactor: result[2]! as double,
+      minExposureOffset: result[3]! as double,
+      maxExposureOffset: result[4]! as double,
+      position: CameraLensPosition.values[result[5]! as int],
+    );
+  }
+}
+
+class AndroidCameraLensCapabilities {
+  AndroidCameraLensCapabilities({
+    this.equivalentFocalLength,
+    this.minZoomFactor,
+    required this.maxZoomFactor,
+    required this.minExposureOffset,
+    required this.maxExposureOffset,
+    required this.exposureOffsetStepSize,
+    required this.position,
+  });
+
+  /// 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable.
+  double? equivalentFocalLength;
+
+  /// Minimum zoom factor. 1.0 for the main back camera; null for other cameras.
+  double? minZoomFactor;
+
+  /// Maximum zoom factor. CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM.
+  double maxZoomFactor;
+
+  /// Minimum exposure offset in EV. CONTROL_AE_COMPENSATION_RANGE.lower × CONTROL_AE_COMPENSATION_STEP.
+  double minExposureOffset;
+
+  /// Maximum exposure offset in EV. CONTROL_AE_COMPENSATION_RANGE.upper × CONTROL_AE_COMPENSATION_STEP.
+  double maxExposureOffset;
+
+  /// Smallest EV step for exposure compensation. CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP.
+  double exposureOffsetStepSize;
+
+  /// Which side of the device this camera faces. CameraCharacteristics.LENS_FACING.
+  CameraLensPosition position;
+
+  Object encode() {
+    return <Object?>[
+      equivalentFocalLength,
+      minZoomFactor,
+      maxZoomFactor,
+      minExposureOffset,
+      maxExposureOffset,
+      exposureOffsetStepSize,
+      position.index,
+    ];
+  }
+
+  static AndroidCameraLensCapabilities decode(Object result) {
+    result as List<Object?>;
+    return AndroidCameraLensCapabilities(
+      equivalentFocalLength: result[0] as double?,
+      minZoomFactor: result[1] as double?,
+      maxZoomFactor: result[2]! as double,
+      minExposureOffset: result[3]! as double,
+      maxExposureOffset: result[4]! as double,
+      exposureOffsetStepSize: result[5]! as double,
+      position: CameraLensPosition.values[result[6]! as int],
     );
   }
 }
@@ -75,8 +141,11 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is CameraLensCapabilities) {
+    }    else if (value is IosCameraLensCapabilities) {
       buffer.putUint8(129);
+      writeValue(buffer, value.encode());
+    }    else if (value is AndroidCameraLensCapabilities) {
+      buffer.putUint8(130);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -87,18 +156,20 @@ class _PigeonCodec extends StandardMessageCodec {
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
       case 129: 
-        return CameraLensCapabilities.decode(readValue(buffer)!);
+        return IosCameraLensCapabilities.decode(readValue(buffer)!);
+      case 130: 
+        return AndroidCameraLensCapabilities.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
   }
 }
 
-class CameraCapabilitiesHostApi {
-  /// Constructor for [CameraCapabilitiesHostApi].  The [binaryMessenger] named argument is
+class CameraInfoIosHostApi {
+  /// Constructor for [CameraInfoIosHostApi].  The [binaryMessenger] named argument is
   /// available for dependency injection.  If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
-  CameraCapabilitiesHostApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+  CameraInfoIosHostApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
       : pigeonVar_binaryMessenger = binaryMessenger,
         pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
   final BinaryMessenger? pigeonVar_binaryMessenger;
@@ -107,9 +178,9 @@ class CameraCapabilitiesHostApi {
 
   final String pigeonVar_messageChannelSuffix;
 
-  /// Returns optical capabilities for every camera available on the device.
-  Future<List<CameraLensCapabilities>> getCameraCapabilities() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.camera_info.CameraCapabilitiesHostApi.getCameraCapabilities$pigeonVar_messageChannelSuffix';
+  /// Returns optical capabilities for every camera available on the device (iOS).
+  Future<List<IosCameraLensCapabilities>> getCameraCapabilities() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.camera_info.CameraInfoIosHostApi.getCameraCapabilities$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -131,7 +202,49 @@ class CameraCapabilitiesHostApi {
         message: 'Host platform returned null value for non-null return value.',
       );
     } else {
-      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<CameraLensCapabilities>();
+      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<IosCameraLensCapabilities>();
+    }
+  }
+}
+
+class CameraInfoAndroidHostApi {
+  /// Constructor for [CameraInfoAndroidHostApi].  The [binaryMessenger] named argument is
+  /// available for dependency injection.  If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  CameraInfoAndroidHostApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Returns optical capabilities for every camera available on the device (Android).
+  Future<List<AndroidCameraLensCapabilities>> getCameraCapabilities() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.camera_info.CameraInfoAndroidHostApi.getCameraCapabilities$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(null) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as List<Object?>?)!.cast<AndroidCameraLensCapabilities>();
     }
   }
 }

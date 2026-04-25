@@ -64,48 +64,106 @@ private func nilOrValue<T>(_ value: Any?) -> T? {
   return value as! T?
 }
 
+/// Which side of the device a camera faces.
+enum CameraLensPosition: Int {
+  case front = 0
+  case back = 1
+  case external = 2
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
-struct CameraLensCapabilities {
-  /// Focal length of the lens in millimetres.
-  var focalLength: Double? = nil
-  /// Maximum aperture of the lens as an f-number (e.g. 1.8 means f/1.8).
-  var aperture: Double? = nil
-  /// Horizontal field of view in degrees.
-  var fieldOfView: Double? = nil
-  /// Minimum supported zoom factor (optical + digital).
-  var minZoomFactor: Double? = nil
-  /// Maximum supported zoom factor (optical + digital).
-  var maxZoomFactor: Double? = nil
-  /// Smallest step by which exposure compensation can be changed (in EV).
-  var exposureOffsetStepSize: Double? = nil
+struct IosCameraLensCapabilities {
+  /// 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
+  var equivalentFocalLength: Double
+  /// Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor.
+  var minZoomFactor: Double
+  /// Maximum zoom factor. AVCaptureDevice.maxAvailableVideoZoomFactor.
+  var maxZoomFactor: Double
+  /// Minimum exposure offset in EV. AVCaptureDevice.minExposureTargetBias.
+  var minExposureOffset: Double
+  /// Maximum exposure offset in EV. AVCaptureDevice.maxExposureTargetBias.
+  var maxExposureOffset: Double
+  /// Which side of the device this camera faces. AVCaptureDevice.position.
+  var position: CameraLensPosition
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
-  static func fromList(_ pigeonVar_list: [Any?]) -> CameraLensCapabilities? {
-    let focalLength: Double? = nilOrValue(pigeonVar_list[0])
-    let aperture: Double? = nilOrValue(pigeonVar_list[1])
-    let fieldOfView: Double? = nilOrValue(pigeonVar_list[2])
-    let minZoomFactor: Double? = nilOrValue(pigeonVar_list[3])
-    let maxZoomFactor: Double? = nilOrValue(pigeonVar_list[4])
-    let exposureOffsetStepSize: Double? = nilOrValue(pigeonVar_list[5])
+  static func fromList(_ pigeonVar_list: [Any?]) -> IosCameraLensCapabilities? {
+    let equivalentFocalLength = pigeonVar_list[0] as! Double
+    let minZoomFactor = pigeonVar_list[1] as! Double
+    let maxZoomFactor = pigeonVar_list[2] as! Double
+    let minExposureOffset = pigeonVar_list[3] as! Double
+    let maxExposureOffset = pigeonVar_list[4] as! Double
+    let position = CameraLensPosition(rawValue: pigeonVar_list[5] as! Int)!
 
-    return CameraLensCapabilities(
-      focalLength: focalLength,
-      aperture: aperture,
-      fieldOfView: fieldOfView,
+    return IosCameraLensCapabilities(
+      equivalentFocalLength: equivalentFocalLength,
       minZoomFactor: minZoomFactor,
       maxZoomFactor: maxZoomFactor,
-      exposureOffsetStepSize: exposureOffsetStepSize
+      minExposureOffset: minExposureOffset,
+      maxExposureOffset: maxExposureOffset,
+      position: position
     )
   }
   func toList() -> [Any?] {
     return [
-      focalLength,
-      aperture,
-      fieldOfView,
+      equivalentFocalLength,
       minZoomFactor,
       maxZoomFactor,
+      minExposureOffset,
+      maxExposureOffset,
+      position.rawValue,
+    ]
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct AndroidCameraLensCapabilities {
+  /// 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable.
+  var equivalentFocalLength: Double? = nil
+  /// Minimum zoom factor. 1.0 for the main back camera; null for other cameras.
+  var minZoomFactor: Double? = nil
+  /// Maximum zoom factor. CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM.
+  var maxZoomFactor: Double
+  /// Minimum exposure offset in EV. CONTROL_AE_COMPENSATION_RANGE.lower × CONTROL_AE_COMPENSATION_STEP.
+  var minExposureOffset: Double
+  /// Maximum exposure offset in EV. CONTROL_AE_COMPENSATION_RANGE.upper × CONTROL_AE_COMPENSATION_STEP.
+  var maxExposureOffset: Double
+  /// Smallest EV step for exposure compensation. CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP.
+  var exposureOffsetStepSize: Double
+  /// Which side of the device this camera faces. CameraCharacteristics.LENS_FACING.
+  var position: CameraLensPosition
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> AndroidCameraLensCapabilities? {
+    let equivalentFocalLength: Double? = nilOrValue(pigeonVar_list[0])
+    let minZoomFactor: Double? = nilOrValue(pigeonVar_list[1])
+    let maxZoomFactor = pigeonVar_list[2] as! Double
+    let minExposureOffset = pigeonVar_list[3] as! Double
+    let maxExposureOffset = pigeonVar_list[4] as! Double
+    let exposureOffsetStepSize = pigeonVar_list[5] as! Double
+    let position = CameraLensPosition(rawValue: pigeonVar_list[6] as! Int)!
+
+    return AndroidCameraLensCapabilities(
+      equivalentFocalLength: equivalentFocalLength,
+      minZoomFactor: minZoomFactor,
+      maxZoomFactor: maxZoomFactor,
+      minExposureOffset: minExposureOffset,
+      maxExposureOffset: maxExposureOffset,
+      exposureOffsetStepSize: exposureOffsetStepSize,
+      position: position
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      equivalentFocalLength,
+      minZoomFactor,
+      maxZoomFactor,
+      minExposureOffset,
+      maxExposureOffset,
       exposureOffsetStepSize,
+      position.rawValue,
     ]
   }
 }
@@ -114,7 +172,9 @@ private class CameraInfoApiPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
     case 129:
-      return CameraLensCapabilities.fromList(self.readValue() as! [Any?])
+      return IosCameraLensCapabilities.fromList(self.readValue() as! [Any?])
+    case 130:
+      return AndroidCameraLensCapabilities.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -123,8 +183,11 @@ private class CameraInfoApiPigeonCodecReader: FlutterStandardReader {
 
 private class CameraInfoApiPigeonCodecWriter: FlutterStandardWriter {
   override func writeValue(_ value: Any) {
-    if let value = value as? CameraLensCapabilities {
+    if let value = value as? IosCameraLensCapabilities {
       super.writeByte(129)
+      super.writeValue(value.toList())
+    } else if let value = value as? AndroidCameraLensCapabilities {
+      super.writeByte(130)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -147,19 +210,47 @@ class CameraInfoApiPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable
 }
 
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
-protocol CameraCapabilitiesHostApi {
-  /// Returns optical capabilities for every camera available on the device.
-  func getCameraCapabilities() throws -> [CameraLensCapabilities]
+protocol CameraInfoIosHostApi {
+  /// Returns optical capabilities for every camera available on the device (iOS).
+  func getCameraCapabilities() throws -> [IosCameraLensCapabilities]
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
-class CameraCapabilitiesHostApiSetup {
+class CameraInfoIosHostApiSetup {
   static var codec: FlutterStandardMessageCodec { CameraInfoApiPigeonCodec.shared }
-  /// Sets up an instance of `CameraCapabilitiesHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: CameraCapabilitiesHostApi?, messageChannelSuffix: String = "") {
+  /// Sets up an instance of `CameraInfoIosHostApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: CameraInfoIosHostApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    /// Returns optical capabilities for every camera available on the device.
-    let getCameraCapabilitiesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.camera_info.CameraCapabilitiesHostApi.getCameraCapabilities\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    /// Returns optical capabilities for every camera available on the device (iOS).
+    let getCameraCapabilitiesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.camera_info.CameraInfoIosHostApi.getCameraCapabilities\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getCameraCapabilitiesChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getCameraCapabilities()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getCameraCapabilitiesChannel.setMessageHandler(nil)
+    }
+  }
+}
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol CameraInfoAndroidHostApi {
+  /// Returns optical capabilities for every camera available on the device (Android).
+  func getCameraCapabilities() throws -> [AndroidCameraLensCapabilities]
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class CameraInfoAndroidHostApiSetup {
+  static var codec: FlutterStandardMessageCodec { CameraInfoApiPigeonCodec.shared }
+  /// Sets up an instance of `CameraInfoAndroidHostApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: CameraInfoAndroidHostApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Returns optical capabilities for every camera available on the device (Android).
+    let getCameraCapabilitiesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.camera_info.CameraInfoAndroidHostApi.getCameraCapabilities\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getCameraCapabilitiesChannel.setMessageHandler { _, reply in
         do {

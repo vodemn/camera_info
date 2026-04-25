@@ -14,6 +14,17 @@ import io.flutter.plugin.common.StandardMessageCodec
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
+/** Which side of the device a camera faces. */
+enum class CameraLensPosition(val raw: Int) {
+  FRONT(0),
+  BACK(1),
+  EXTERNAL(2);
+
+  companion object {
+    fun ofRaw(raw: Int): CameraLensPosition? = values().firstOrNull { it.raw == raw }
+  }
+}
+
 private fun wrapResult(result: Any?): List<Any?> {
   return listOf(result)
 }
@@ -47,40 +58,83 @@ class FlutterError (
 ) : Throwable()
 
 /** Generated class from Pigeon that represents data sent in messages. */
-data class CameraLensCapabilities (
-  /** Focal length of the lens in millimetres. */
-  val focalLength: Double? = null,
-  /** Maximum aperture of the lens as an f-number (e.g. 1.8 means f/1.8). */
-  val aperture: Double? = null,
-  /** Horizontal field of view in degrees. */
-  val fieldOfView: Double? = null,
-  /** Minimum supported zoom factor (optical + digital). */
-  val minZoomFactor: Double? = null,
-  /** Maximum supported zoom factor (optical + digital). */
-  val maxZoomFactor: Double? = null,
-  /** Smallest step by which exposure compensation can be changed (in EV). */
-  val exposureOffsetStepSize: Double? = null
+data class IosCameraLensCapabilities (
+  /** 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView. */
+  val equivalentFocalLength: Double,
+  /** Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor. */
+  val minZoomFactor: Double,
+  /** Maximum zoom factor. AVCaptureDevice.maxAvailableVideoZoomFactor. */
+  val maxZoomFactor: Double,
+  /** Minimum exposure offset in EV. AVCaptureDevice.minExposureTargetBias. */
+  val minExposureOffset: Double,
+  /** Maximum exposure offset in EV. AVCaptureDevice.maxExposureTargetBias. */
+  val maxExposureOffset: Double,
+  /** Which side of the device this camera faces. AVCaptureDevice.position. */
+  val position: CameraLensPosition
 )
  {
   companion object {
-    fun fromList(pigeonVar_list: List<Any?>): CameraLensCapabilities {
-      val focalLength = pigeonVar_list[0] as Double?
-      val aperture = pigeonVar_list[1] as Double?
-      val fieldOfView = pigeonVar_list[2] as Double?
-      val minZoomFactor = pigeonVar_list[3] as Double?
-      val maxZoomFactor = pigeonVar_list[4] as Double?
-      val exposureOffsetStepSize = pigeonVar_list[5] as Double?
-      return CameraLensCapabilities(focalLength, aperture, fieldOfView, minZoomFactor, maxZoomFactor, exposureOffsetStepSize)
+    fun fromList(pigeonVar_list: List<Any?>): IosCameraLensCapabilities {
+      val equivalentFocalLength = pigeonVar_list[0] as Double
+      val minZoomFactor = pigeonVar_list[1] as Double
+      val maxZoomFactor = pigeonVar_list[2] as Double
+      val minExposureOffset = pigeonVar_list[3] as Double
+      val maxExposureOffset = pigeonVar_list[4] as Double
+      val position = CameraLensPosition.ofRaw(pigeonVar_list[5] as Int)!!
+      return IosCameraLensCapabilities(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, position)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
-      focalLength,
-      aperture,
-      fieldOfView,
+      equivalentFocalLength,
       minZoomFactor,
       maxZoomFactor,
+      minExposureOffset,
+      maxExposureOffset,
+      position.raw,
+    )
+  }
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class AndroidCameraLensCapabilities (
+  /** 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable. */
+  val equivalentFocalLength: Double? = null,
+  /** Minimum zoom factor. 1.0 for the main back camera; null for other cameras. */
+  val minZoomFactor: Double? = null,
+  /** Maximum zoom factor. CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM. */
+  val maxZoomFactor: Double,
+  /** Minimum exposure offset in EV. CONTROL_AE_COMPENSATION_RANGE.lower × CONTROL_AE_COMPENSATION_STEP. */
+  val minExposureOffset: Double,
+  /** Maximum exposure offset in EV. CONTROL_AE_COMPENSATION_RANGE.upper × CONTROL_AE_COMPENSATION_STEP. */
+  val maxExposureOffset: Double,
+  /** Smallest EV step for exposure compensation. CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP. */
+  val exposureOffsetStepSize: Double,
+  /** Which side of the device this camera faces. CameraCharacteristics.LENS_FACING. */
+  val position: CameraLensPosition
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): AndroidCameraLensCapabilities {
+      val equivalentFocalLength = pigeonVar_list[0] as Double?
+      val minZoomFactor = pigeonVar_list[1] as Double?
+      val maxZoomFactor = pigeonVar_list[2] as Double
+      val minExposureOffset = pigeonVar_list[3] as Double
+      val maxExposureOffset = pigeonVar_list[4] as Double
+      val exposureOffsetStepSize = pigeonVar_list[5] as Double
+      val position = CameraLensPosition.ofRaw(pigeonVar_list[6] as Int)!!
+      return AndroidCameraLensCapabilities(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, exposureOffsetStepSize, position)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      equivalentFocalLength,
+      minZoomFactor,
+      maxZoomFactor,
+      minExposureOffset,
+      maxExposureOffset,
       exposureOffsetStepSize,
+      position.raw,
     )
   }
 }
@@ -89,7 +143,12 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          CameraLensCapabilities.fromList(it)
+          IosCameraLensCapabilities.fromList(it)
+        }
+      }
+      130.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          AndroidCameraLensCapabilities.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -97,8 +156,12 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is CameraLensCapabilities -> {
+      is IosCameraLensCapabilities -> {
         stream.write(129)
+        writeValue(stream, value.toList())
+      }
+      is AndroidCameraLensCapabilities -> {
+        stream.write(130)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -107,21 +170,53 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
 }
 
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
-interface CameraCapabilitiesHostApi {
-  /** Returns optical capabilities for every camera available on the device. */
-  fun getCameraCapabilities(): List<CameraLensCapabilities>
+interface CameraInfoIosHostApi {
+  /** Returns optical capabilities for every camera available on the device (iOS). */
+  fun getCameraCapabilities(): List<IosCameraLensCapabilities>
 
   companion object {
-    /** The codec used by CameraCapabilitiesHostApi. */
+    /** The codec used by CameraInfoIosHostApi. */
     val codec: MessageCodec<Any?> by lazy {
       CameraInfoApiPigeonCodec()
     }
-    /** Sets up an instance of `CameraCapabilitiesHostApi` to handle messages through the `binaryMessenger`. */
+    /** Sets up an instance of `CameraInfoIosHostApi` to handle messages through the `binaryMessenger`. */
     @JvmOverloads
-    fun setUp(binaryMessenger: BinaryMessenger, api: CameraCapabilitiesHostApi?, messageChannelSuffix: String = "") {
+    fun setUp(binaryMessenger: BinaryMessenger, api: CameraInfoIosHostApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.camera_info.CameraCapabilitiesHostApi.getCameraCapabilities$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.camera_info.CameraInfoIosHostApi.getCameraCapabilities$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.getCameraCapabilities())
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+    }
+  }
+}
+/** Generated interface from Pigeon that represents a handler of messages from Flutter. */
+interface CameraInfoAndroidHostApi {
+  /** Returns optical capabilities for every camera available on the device (Android). */
+  fun getCameraCapabilities(): List<AndroidCameraLensCapabilities>
+
+  companion object {
+    /** The codec used by CameraInfoAndroidHostApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      CameraInfoApiPigeonCodec()
+    }
+    /** Sets up an instance of `CameraInfoAndroidHostApi` to handle messages through the `binaryMessenger`. */
+    @JvmOverloads
+    fun setUp(binaryMessenger: BinaryMessenger, api: CameraInfoAndroidHostApi?, messageChannelSuffix: String = "") {
+      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.camera_info.CameraInfoAndroidHostApi.getCameraCapabilities$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
