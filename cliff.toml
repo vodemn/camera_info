@@ -25,4 +25,5 @@ commit_parsers = [
   { message = ".*", group = "Other" },
 ]
 filter_commits = false
-tag_pattern = "v[0-9].*"
+tag_pattern = "v?[0-9].*"
+tag_prefix = "v"
