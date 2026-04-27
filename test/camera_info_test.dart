@@ -117,8 +117,46 @@ void main() {
     test('getMainCameraInfo returns the lens with isMain == true', () async {
       CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
       final main = await api.getMainCameraInfo();
-      expect(main, isNotNull);
-      expect(main!.isMain, isTrue);
+      expect(main.isMain, isTrue);
+    });
+
+    test('getMainCameraInfo falls back to first rear camera when none is main', () async {
+      final frontLens = IosCameraLensInfo(
+        position: CameraLensPosition.front,
+        equivalentFocalLength: 22.0,
+        minZoomFactor: 1.0,
+        maxZoomFactor: 2.0,
+        minExposureOffset: -8.0,
+        maxExposureOffset: 8.0,
+        isMain: false,
+      );
+      final backLens = IosCameraLensInfo(
+        position: CameraLensPosition.back,
+        equivalentFocalLength: 26.0,
+        minZoomFactor: 1.0,
+        maxZoomFactor: 6.0,
+        minExposureOffset: -8.0,
+        maxExposureOffset: 8.0,
+        isMain: false,
+      );
+      CameraInfo.setMockInitialValues(iosInfo: [frontLens, backLens]);
+      final main = await api.getMainCameraInfo();
+      expect(main.position, CameraLensPosition.back);
+    });
+
+    test('getMainCameraInfo falls back to first camera when no rear camera exists', () async {
+      final frontLens = IosCameraLensInfo(
+        position: CameraLensPosition.front,
+        equivalentFocalLength: 22.0,
+        minZoomFactor: 1.0,
+        maxZoomFactor: 2.0,
+        minExposureOffset: -8.0,
+        maxExposureOffset: 8.0,
+        isMain: false,
+      );
+      CameraInfo.setMockInitialValues(iosInfo: [frontLens]);
+      final main = await api.getMainCameraInfo();
+      expect(main.position, CameraLensPosition.front);
     });
 
     test('getCameraInfo result is cached across calls', () async {

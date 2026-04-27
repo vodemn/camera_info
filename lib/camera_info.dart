@@ -116,18 +116,29 @@ class CameraInfo {
     return _sharedCache!;
   }
 
-  /// Returns info for the main (wide-angle back) camera, or null if
-  /// none is identified as main.
-  Future<CameraLensInfo?> getMainCameraInfo() async {
-    return (await getCameraInfo()).where((c) => c.isMain).firstOrNull;
+  /// Returns info for the main (wide-angle back) camera.
+  ///
+  /// Falls back to the first rear-facing camera, or the first camera overall
+  /// if no rear camera exists.
+  Future<CameraLensInfo> getMainCameraInfo() async {
+    final cameras = await getCameraInfo();
+    return _resolveMainCamera(cameras);
   }
 
-  /// Synchronously returns the cached main camera info, or null if
-  /// none is identified as main.
+  /// Synchronously returns the cached main camera info.
   ///
-  /// Throws [StateError] if [getMainCameraInfo] has not been awaited yet.
-  CameraLensInfo? get mainCameraInfo {
-    return cameraInfo.where((c) => c.isMain).firstOrNull;
+  /// Falls back to the first rear-facing camera, or the first camera overall
+  /// if no rear camera exists.
+  /// Throws [StateError] if [getCameraInfo] has not been awaited yet.
+  CameraLensInfo get mainCameraInfo => _resolveMainCamera(cameraInfo);
+
+  CameraLensInfo _resolveMainCamera(List<CameraLensInfo> cameras) {
+    return cameras.firstWhere((c) => c.isMain, orElse: () {
+      return cameras.firstWhere(
+        (c) => c.position == CameraLensPosition.back,
+        orElse: () => cameras.first,
+      );
+    });
   }
 
   /// Returns optical info for every camera, mapped to the shared
