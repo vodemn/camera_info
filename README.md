@@ -12,7 +12,7 @@ A Flutter plugin that exposes per-camera optical metadata on iOS and Android —
 
 ```yaml
 dependencies:
-  camera_info: ^0.1.0
+  camera_info: ^0.2.0
 ```
 
 ## Usage

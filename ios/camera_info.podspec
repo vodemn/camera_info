@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'camera_info'
-  s.version          = '0.1.0'
+  s.version          = '0.2.0'
   s.summary          = 'Exposes per-camera optical metadata on iOS and Android.'
   s.description      = <<-DESC
     A Flutter plugin that surfaces per-camera optical metadata not available in

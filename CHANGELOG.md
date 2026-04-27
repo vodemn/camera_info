@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.0 — 2026-04-27
+
+### Features
+
+- Make main camera API non-null with first-camera fallback
+# Changelog
+
 ## v0.1.0 — 2026-04-26
 
 ### Features

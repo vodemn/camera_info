@@ -1,6 +1,6 @@
 name: camera_info
 description: "Exposes per-camera optical metadata on iOS and Android: equivalent focal length, zoom range, exposure offset range and step, and main-camera identification."
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/Vodemn/camera_info
 
 environment:
