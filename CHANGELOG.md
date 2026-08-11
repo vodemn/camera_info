@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.0 — 2026-08-11
+
+### Features
+
+- Use diagonal 35mm equivalent focal length on iOS
+# Changelog
+
 ## v0.2.0 — 2026-04-27
 
 ### Features
