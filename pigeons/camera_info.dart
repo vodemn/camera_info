@@ -18,7 +18,7 @@ enum CameraLensPosition {
 }
 
 class IosCameraLensInfo {
-  /// 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
+  /// 35mm diagonal-equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
   late double equivalentFocalLength;
 
   /// Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor.

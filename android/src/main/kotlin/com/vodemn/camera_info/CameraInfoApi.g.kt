@@ -59,7 +59,7 @@ class FlutterError (
 
 /** Generated class from Pigeon that represents data sent in messages. */
 data class IosCameraLensInfo (
-  /** 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView. */
+  /** 35mm diagonal-equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView. */
   val equivalentFocalLength: Double,
   /** Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor. */
   val minZoomFactor: Double,

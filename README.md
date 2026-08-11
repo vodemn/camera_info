@@ -90,7 +90,7 @@ All fields are non-nullable — AVFoundation always provides them.
 |---|---|---|
 | `position` | `CameraLensPosition` | [`AVCaptureDevice.position`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1387810-position) |
 | `isMain` | `bool` | `true` if device matches `AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)` |
-| `equivalentFocalLength` | `double` | `18 / tan(videoFieldOfView × π/180 / 2)` via [`AVCaptureDevice.Format.videoFieldOfView`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/format/1624571-videofieldofview) |
+| `equivalentFocalLength` | `double` | 35mm diagonal equivalent, derived from [`AVCaptureDevice.Format.videoFieldOfView`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/format/1624571-videofieldofview) and the active format's dimensions; falls back to the horizontal equivalent if the diagonal calculation cannot be made |
 | `minZoomFactor` | `double` | [`AVCaptureDevice.minAvailableVideoZoomFactor`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1622591-minavailablevideozoomfactor) |
 | `maxZoomFactor` | `double` | [`AVCaptureDevice.maxAvailableVideoZoomFactor`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1622425-maxavailablevideozoomfactor) |
 | `minExposureOffset` | `double` | [`AVCaptureDevice.minExposureTargetBias`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1624604-minexposuretargetbias) |

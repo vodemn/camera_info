@@ -73,7 +73,7 @@ enum CameraLensPosition: Int {
 
 /// Generated class from Pigeon that represents data sent in messages.
 struct IosCameraLensInfo {
-  /// 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
+  /// 35mm diagonal-equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
   var equivalentFocalLength: Double
   /// Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor.
   var minZoomFactor: Double

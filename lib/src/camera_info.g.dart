@@ -34,7 +34,7 @@ class IosCameraLensInfo {
     required this.isMain,
   });
 
-  /// 35mm equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
+  /// 35mm diagonal-equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
   double equivalentFocalLength;
 
   /// Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor.
