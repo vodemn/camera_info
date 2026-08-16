@@ -4,6 +4,8 @@ import 'package:camera_info/camera_info.dart';
 final _iosLens = IosCameraLensInfo(
   position: CameraLensPosition.back,
   equivalentFocalLength: 26.0,
+  equivalentFocalLengthBasis: EquivalentFocalLengthBasis.horizontal,
+  equivalentFocalLengthAspectRatio: 4 / 3,
   minZoomFactor: 1.0,
   maxZoomFactor: 6.0,
   minExposureOffset: -8.0,
@@ -14,6 +16,8 @@ final _iosLens = IosCameraLensInfo(
 final _androidLens = AndroidCameraLensInfo(
   position: CameraLensPosition.front,
   equivalentFocalLength: 22.0,
+  equivalentFocalLengthBasis: EquivalentFocalLengthBasis.diagonal,
+  equivalentFocalLengthAspectRatio: 1.5,
   minZoomFactor: 1.0,
   maxZoomFactor: 4.0,
   minExposureOffset: -2.0,
@@ -24,15 +28,19 @@ final _androidLens = AndroidCameraLensInfo(
 
 void main() {
   group('CameraLensInfo', () {
-    test('nullable fields default to null', () {
+    test('nullable fields default to null while basis is required', () {
       const caps = CameraLensInfo(
         position: CameraLensPosition.back,
+        equivalentFocalLengthBasis: EquivalentFocalLengthBasis.diagonal,
         maxZoomFactor: 1.0,
         minExposureOffset: -2.0,
         maxExposureOffset: 2.0,
         isMain: true,
       );
       expect(caps.equivalentFocalLength, isNull);
+      expect(
+          caps.equivalentFocalLengthBasis, EquivalentFocalLengthBasis.diagonal);
+      expect(caps.equivalentFocalLengthAspectRatio, isNull);
       expect(caps.minZoomFactor, isNull);
       expect(caps.exposureOffsetStepSize, isNull);
     });
@@ -41,6 +49,8 @@ void main() {
       const caps = CameraLensInfo(
         position: CameraLensPosition.front,
         equivalentFocalLength: 26.0,
+        equivalentFocalLengthBasis: EquivalentFocalLengthBasis.horizontal,
+        equivalentFocalLengthAspectRatio: 16 / 9,
         minZoomFactor: 1.0,
         maxZoomFactor: 5.0,
         minExposureOffset: -2.0,
@@ -50,6 +60,9 @@ void main() {
       );
       expect(caps.position, CameraLensPosition.front);
       expect(caps.equivalentFocalLength, 26.0);
+      expect(caps.equivalentFocalLengthBasis,
+          EquivalentFocalLengthBasis.horizontal);
+      expect(caps.equivalentFocalLengthAspectRatio, 16 / 9);
       expect(caps.minZoomFactor, 1.0);
       expect(caps.maxZoomFactor, 5.0);
       expect(caps.minExposureOffset, -2.0);
@@ -67,18 +80,28 @@ void main() {
     });
   });
 
+  group('EquivalentFocalLengthBasis', () {
+    test('index values are stable', () {
+      expect(EquivalentFocalLengthBasis.diagonal.index, 0);
+      expect(EquivalentFocalLengthBasis.horizontal.index, 1);
+    });
+  });
+
   group('CameraInfo caching', () {
     final api = CameraInfo();
 
     setUp(() => CameraInfo.setMockInitialValues());
 
-    test('getIosCameraInfo returns mock iOS data without a platform call', () async {
+    test('getIosCameraInfo returns mock iOS data without a platform call',
+        () async {
       CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
       final result = await api.getIosCameraInfo();
       expect(result, [_iosLens]);
     });
 
-    test('getAndroidCameraInfo returns mock Android data without a platform call', () async {
+    test(
+        'getAndroidCameraInfo returns mock Android data without a platform call',
+        () async {
       CameraInfo.setMockInitialValues(androidInfo: [_androidLens]);
       final result = await api.getAndroidCameraInfo();
       expect(result, [_androidLens]);
@@ -91,6 +114,14 @@ void main() {
       final lens = result.first;
       expect(lens.position, _iosLens.position);
       expect(lens.equivalentFocalLength, _iosLens.equivalentFocalLength);
+      expect(
+        lens.equivalentFocalLengthBasis,
+        _iosLens.equivalentFocalLengthBasis,
+      );
+      expect(
+        lens.equivalentFocalLengthAspectRatio,
+        _iosLens.equivalentFocalLengthAspectRatio,
+      );
       expect(lens.minZoomFactor, _iosLens.minZoomFactor);
       expect(lens.maxZoomFactor, _iosLens.maxZoomFactor);
       expect(lens.minExposureOffset, _iosLens.minExposureOffset);
@@ -106,6 +137,14 @@ void main() {
       final lens = result.first;
       expect(lens.position, _androidLens.position);
       expect(lens.equivalentFocalLength, _androidLens.equivalentFocalLength);
+      expect(
+        lens.equivalentFocalLengthBasis,
+        _androidLens.equivalentFocalLengthBasis,
+      );
+      expect(
+        lens.equivalentFocalLengthAspectRatio,
+        _androidLens.equivalentFocalLengthAspectRatio,
+      );
       expect(lens.minZoomFactor, _androidLens.minZoomFactor);
       expect(lens.maxZoomFactor, _androidLens.maxZoomFactor);
       expect(lens.minExposureOffset, _androidLens.minExposureOffset);
@@ -120,10 +159,12 @@ void main() {
       expect(main.isMain, isTrue);
     });
 
-    test('getMainCameraInfo falls back to first rear camera when none is main', () async {
+    test('getMainCameraInfo falls back to first rear camera when none is main',
+        () async {
       final frontLens = IosCameraLensInfo(
         position: CameraLensPosition.front,
         equivalentFocalLength: 22.0,
+        equivalentFocalLengthBasis: EquivalentFocalLengthBasis.horizontal,
         minZoomFactor: 1.0,
         maxZoomFactor: 2.0,
         minExposureOffset: -8.0,
@@ -133,6 +174,7 @@ void main() {
       final backLens = IosCameraLensInfo(
         position: CameraLensPosition.back,
         equivalentFocalLength: 26.0,
+        equivalentFocalLengthBasis: EquivalentFocalLengthBasis.horizontal,
         minZoomFactor: 1.0,
         maxZoomFactor: 6.0,
         minExposureOffset: -8.0,
@@ -144,10 +186,13 @@ void main() {
       expect(main.position, CameraLensPosition.back);
     });
 
-    test('getMainCameraInfo falls back to first camera when no rear camera exists', () async {
+    test(
+        'getMainCameraInfo falls back to first camera when no rear camera exists',
+        () async {
       final frontLens = IosCameraLensInfo(
         position: CameraLensPosition.front,
         equivalentFocalLength: 22.0,
+        equivalentFocalLengthBasis: EquivalentFocalLengthBasis.horizontal,
         minZoomFactor: 1.0,
         maxZoomFactor: 2.0,
         minExposureOffset: -8.0,
@@ -220,7 +265,8 @@ void main() {
       });
     });
 
-    test('setMockInitialValues clears cache when called with no arguments', () async {
+    test('setMockInitialValues clears cache when called with no arguments',
+        () async {
       CameraInfo.setMockInitialValues(iosInfo: [_iosLens]);
       await api.getIosCameraInfo(); // populate _iosCache
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.0 — Unreleased
+
+### Breaking changes
+
+- Make iOS horizontal equivalent focal length nullable when its horizontal FOV is unusable.
+- Add the required `EquivalentFocalLengthBasis` and `equivalentFocalLengthAspectRatio`; iOS reports its native horizontal convention and Android reports its diagonal convention.
+
 ## v0.3.0 — 2026-08-11
 
 ### Features

@@ -17,9 +17,21 @@ enum CameraLensPosition {
   external,
 }
 
+/// Axis convention used for a 35mm-equivalent focal length.
+enum EquivalentFocalLengthBasis {
+  diagonal,
+  horizontal,
+}
+
 class IosCameraLensInfo {
-  /// 35mm diagonal-equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
-  late double equivalentFocalLength;
+  /// Horizontal 35mm-equivalent focal length, or null when its horizontal FOV is unusable.
+  double? equivalentFocalLength;
+
+  /// Axis convention for this platform's EFL calculation: always horizontal on iOS.
+  late EquivalentFocalLengthBasis equivalentFocalLengthBasis;
+
+  /// Width / height of the active format used to convert this EFL to another axis.
+  double? equivalentFocalLengthAspectRatio;
 
   /// Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor.
   late double minZoomFactor;
@@ -43,6 +55,12 @@ class IosCameraLensInfo {
 class AndroidCameraLensInfo {
   /// 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable.
   double? equivalentFocalLength;
+
+  /// Axis convention for this platform's EFL calculation: always diagonal on Android.
+  late EquivalentFocalLengthBasis equivalentFocalLengthBasis;
+
+  /// Width / height of the physical sensor used for EFL geometry, when available.
+  double? equivalentFocalLengthAspectRatio;
 
   /// Minimum zoom factor. 1.0 for the main back camera; null for other cameras.
   double? minZoomFactor;

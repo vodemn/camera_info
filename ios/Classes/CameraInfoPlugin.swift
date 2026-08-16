@@ -24,15 +24,18 @@ public class CameraInfoPlugin: NSObject, FlutterPlugin, CameraInfoIosHostApi {
     let mainDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
     return session.devices.map { device in
       let format = device.activeFormat
-      let efl = get35mmDiagonalEquivalentFocalLength(format: format)
-        ?? get35mmHorizontalEquivalentFocalLength(format: format)
+      let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+      let aspectRatio = getAspectRatio(dimensions: dimensions)
+      let equivalentFocalLength = get35mmHorizontalEquivalentFocalLength(format: format)
       let position: CameraLensPosition = switch device.position {
         case .front: .front
         case .back: .back
         default: .external
       }
       return IosCameraLensInfo(
-        equivalentFocalLength: efl,
+        equivalentFocalLength: equivalentFocalLength,
+        equivalentFocalLengthBasis: .horizontal,
+        equivalentFocalLengthAspectRatio: aspectRatio,
         minZoomFactor: Double(device.minAvailableVideoZoomFactor),
         maxZoomFactor: Double(device.maxAvailableVideoZoomFactor),
         minExposureOffset: Double(device.minExposureTargetBias),
@@ -43,29 +46,26 @@ public class CameraInfoPlugin: NSObject, FlutterPlugin, CameraInfoIosHostApi {
     }
   }
 
-  private func get35mmDiagonalEquivalentFocalLength(
+  private func get35mmHorizontalEquivalentFocalLength(
     format: AVCaptureDevice.Format
   ) -> Double? {
     let horizontalFovDegrees = Double(format.videoFieldOfView)
-    guard horizontalFovDegrees > 0 else { return nil }
+    guard horizontalFovDegrees.isFinite, horizontalFovDegrees > 0, horizontalFovDegrees < 180 else {
+      return nil
+    }
 
-    let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-    guard dimensions.width > 0, dimensions.height > 0 else { return nil }
-
-    let aspectRatio = Double(dimensions.width) / Double(dimensions.height)
     let horizontalHalfAngleTangent = tan(horizontalFovDegrees * .pi / 360.0)
-    let diagonalHalfAngleTangent =
-      horizontalHalfAngleTangent * sqrt(1.0 + 1.0 / (aspectRatio * aspectRatio))
-    guard diagonalHalfAngleTangent.isFinite, diagonalHalfAngleTangent > 0 else { return nil }
+    guard horizontalHalfAngleTangent.isFinite, horizontalHalfAngleTangent > 0 else { return nil }
 
-    let fullFrameDiagonal = sqrt(36.0 * 36.0 + 24.0 * 24.0)
-    return (fullFrameDiagonal / 2.0) / diagonalHalfAngleTangent
+    let horizontalEfl = 18.0 / horizontalHalfAngleTangent
+    guard horizontalEfl.isFinite, horizontalEfl > 0 else { return nil }
+    return horizontalEfl
   }
 
-  private func get35mmHorizontalEquivalentFocalLength(
-    format: AVCaptureDevice.Format
-  ) -> Double {
-    let fovRadians = Double(format.videoFieldOfView) * .pi / 180.0
-    return 18.0 / tan(fovRadians / 2.0)
+  private func getAspectRatio(dimensions: CMVideoDimensions) -> Double? {
+    guard dimensions.width > 0, dimensions.height > 0 else { return nil }
+    let aspectRatio = Double(dimensions.width) / Double(dimensions.height)
+    guard aspectRatio.isFinite, aspectRatio > 0 else { return nil }
+    return aspectRatio
   }
 }

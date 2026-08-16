@@ -12,7 +12,7 @@ A Flutter plugin that exposes per-camera optical metadata on iOS and Android —
 
 ```yaml
 dependencies:
-  camera_info: ^0.3.0
+  camera_info: ^0.4.0
 ```
 
 ## Usage
@@ -28,7 +28,9 @@ final cameras = await plugin.getCameraInfo();
 for (final cam in cameras) {
   print('Position       : ${cam.position.name}');   // front / back / external
   print('Main camera    : ${cam.isMain}');
-  print('EFL            : ${cam.equivalentFocalLength} mm');
+  print('EFL            : ${cam.equivalentFocalLength?.toStringAsFixed(1) ?? 'n/a'} mm');
+  print('EFL basis      : ${cam.equivalentFocalLengthBasis.name}');
+  print('EFL aspect     : ${cam.equivalentFocalLengthAspectRatio?.toStringAsFixed(3) ?? 'n/a'}');
   print('Zoom range     : ${cam.minZoomFactor}x – ${cam.maxZoomFactor}x');
   print('Exposure range : ${cam.minExposureOffset} – ${cam.maxExposureOffset} EV');
   print('EV step size   : ${cam.exposureOffsetStepSize} EV');
@@ -48,8 +50,8 @@ final rearCameras = cameras
 ```dart
 if (Platform.isIOS) {
   final cameras = await plugin.getIosCameraInfo();
-  // All fields are non-nullable
-  print(cameras.first.equivalentFocalLength);
+  // EFL fields are nullable — see IosCameraLensInfo.
+  print(cameras.first.equivalentFocalLengthBasis);
 } else {
   final cameras = await plugin.getAndroidCameraInfo();
   // Some fields are nullable — see AndroidCameraLensInfo
@@ -84,13 +86,13 @@ enum CameraLensPosition { front, back, external }
 
 ### `IosCameraLensInfo`
 
-All fields are non-nullable — AVFoundation always provides them.
-
 | Field | Type | AVFoundation source |
 |---|---|---|
 | `position` | `CameraLensPosition` | [`AVCaptureDevice.position`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1387810-position) |
 | `isMain` | `bool` | `true` if device matches `AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)` |
-| `equivalentFocalLength` | `double` | 35mm diagonal equivalent, derived from [`AVCaptureDevice.Format.videoFieldOfView`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/format/1624571-videofieldofview) and the active format's dimensions; falls back to the horizontal equivalent if the diagonal calculation cannot be made |
+| `equivalentFocalLength` | `double?` | Horizontal 35mm equivalent derived from [`AVCaptureDevice.Format.videoFieldOfView`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/format/1624571-videofieldofview); null when the FOV is unusable |
+| `equivalentFocalLengthBasis` | `EquivalentFocalLengthBasis` | Always `horizontal` |
+| `equivalentFocalLengthAspectRatio` | `double?` | Active-format width / height used to convert EFL to another axis |
 | `minZoomFactor` | `double` | [`AVCaptureDevice.minAvailableVideoZoomFactor`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1622591-minavailablevideozoomfactor) |
 | `maxZoomFactor` | `double` | [`AVCaptureDevice.maxAvailableVideoZoomFactor`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1622425-maxavailablevideozoomfactor) |
 | `minExposureOffset` | `double` | [`AVCaptureDevice.minExposureTargetBias`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/1624604-minexposuretargetbias) |
@@ -103,6 +105,8 @@ All fields are non-nullable — AVFoundation always provides them.
 | `position` | `CameraLensPosition` | [`LENS_FACING`](https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics#LENS_FACING) |
 | `isMain` | `bool` | `true` if camera ID matches the first `LENS_FACING_BACK` entry in `cameraIdList` |
 | `equivalentFocalLength` | `double?` | `43.27 × FOCAL_LENGTHS[0] / √(h²+w²)` via [`LENS_INFO_AVAILABLE_FOCAL_LENGTHS`](https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics#LENS_INFO_AVAILABLE_FOCAL_LENGTHS) + [`SENSOR_INFO_PHYSICAL_SIZE`](https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics#SENSOR_INFO_PHYSICAL_SIZE); null if either is absent |
+| `equivalentFocalLengthBasis` | `EquivalentFocalLengthBasis` | Always `diagonal` |
+| `equivalentFocalLengthAspectRatio` | `double?` | Physical-sensor width / height used for EFL geometry |
 | `minZoomFactor` | `double?` | `1.0` for the main back camera; null for other cameras |
 | `maxZoomFactor` | `double` | [`SCALER_AVAILABLE_MAX_DIGITAL_ZOOM`](https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics#SCALER_AVAILABLE_MAX_DIGITAL_ZOOM) |
 | `minExposureOffset` | `double` | [`CONTROL_AE_COMPENSATION_RANGE`](https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics#CONTROL_AE_COMPENSATION_RANGE)`.lower × STEP` |
@@ -117,7 +121,9 @@ Returned by `getCameraInfo()`. Fields are non-nullable only where both platforms
 |---|---|---|
 | `position` | `CameraLensPosition` | Both |
 | `isMain` | `bool` | Both |
-| `equivalentFocalLength` | `double?` | iOS only |
+| `equivalentFocalLength` | `double?` | When the platform can calculate it |
+| `equivalentFocalLengthBasis` | `EquivalentFocalLengthBasis` | Always present; use it to interpret EFL |
+| `equivalentFocalLengthAspectRatio` | `double?` | When the geometry dimensions are available |
 | `minZoomFactor` | `double?` | iOS only |
 | `maxZoomFactor` | `double` | Both |
 | `minExposureOffset` | `double` | Both |

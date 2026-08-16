@@ -52,13 +52,12 @@ class _MyAppState extends State<MyApp> {
                 itemBuilder: (context, i) {
                   final cam = _cameras[i];
                   final positionLabel = switch (cam.position) {
-                    CameraLensPosition.front    => 'Front',
-                    CameraLensPosition.back     => 'Back',
+                    CameraLensPosition.front => 'Front',
+                    CameraLensPosition.back => 'Back',
                     CameraLensPosition.external => 'External',
                   };
-                  final title = cam.isMain
-                      ? '$positionLabel (Main)'
-                      : positionLabel;
+                  final title =
+                      cam.isMain ? '$positionLabel (Main)' : positionLabel;
                   return ListTile(
                     leading: cam.isMain
                         ? const Icon(Icons.star, color: Colors.amber)
@@ -66,6 +65,8 @@ class _MyAppState extends State<MyApp> {
                     title: Text(title),
                     subtitle: Text(
                       'EFL: ${cam.equivalentFocalLength?.toStringAsFixed(1) ?? 'n/a'} mm\n'
+                      'EFL basis: ${cam.equivalentFocalLengthBasis.name}\n'
+                      'EFL aspect: ${cam.equivalentFocalLengthAspectRatio?.toStringAsFixed(3) ?? 'n/a'}\n'
                       'Zoom: ${cam.minZoomFactor?.toStringAsFixed(1) ?? 'n/a'}x – ${cam.maxZoomFactor.toStringAsFixed(1)}x\n'
                       'Exposure: ${cam.minExposureOffset.toStringAsFixed(1)} – ${cam.maxExposureOffset.toStringAsFixed(1)} EV\n'
                       'EV step: ${cam.exposureOffsetStepSize?.toStringAsFixed(2) ?? 'n/a'}',

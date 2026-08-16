@@ -3,7 +3,11 @@ import 'dart:io';
 import 'src/camera_info.g.dart';
 
 export 'src/camera_info.g.dart'
-    show IosCameraLensInfo, AndroidCameraLensInfo, CameraLensPosition;
+    show
+        IosCameraLensInfo,
+        AndroidCameraLensInfo,
+        CameraLensPosition,
+        EquivalentFocalLengthBasis;
 
 /// Combined cross-platform model.
 ///
@@ -16,7 +20,9 @@ class CameraLensInfo {
     required this.minExposureOffset,
     required this.maxExposureOffset,
     required this.isMain,
+    required this.equivalentFocalLengthBasis,
     this.equivalentFocalLength,
+    this.equivalentFocalLengthAspectRatio,
     this.minZoomFactor,
     this.exposureOffsetStepSize,
   });
@@ -24,8 +30,22 @@ class CameraLensInfo {
   /// Which side of the device this camera faces. Always present on both platforms.
   final CameraLensPosition position;
 
-  /// 35mm equivalent focal length in mm. Always present on iOS; may be null on Android.
+  /// 35mm equivalent focal length in mm, or null when it cannot be calculated.
   final double? equivalentFocalLength;
+
+  /// Axis convention for the platform's EFL calculation.
+  ///
+  /// Always [EquivalentFocalLengthBasis.horizontal] on iOS and
+  /// [EquivalentFocalLengthBasis.diagonal] on Android, even when
+  /// [equivalentFocalLength] is null.
+  final EquivalentFocalLengthBasis equivalentFocalLengthBasis;
+
+  /// Width / height of the image plane used to convert EFL to another axis.
+  ///
+  /// iOS reports the active format's aspect ratio. Android reports the physical
+  /// sensor aspect ratio used by its EFL calculation; it does not describe a
+  /// selected preview or capture stream.
+  final double? equivalentFocalLengthAspectRatio;
 
   /// Minimum zoom factor. Always present on iOS; may be null on Android.
   final double? minZoomFactor;
@@ -57,11 +77,12 @@ class CameraInfo {
 
   /// Returns optical info for every camera on iOS.
   ///
-  /// All fields are non-nullable — AVFoundation always provides them.
+  /// Some fields are nullable — see [IosCameraLensInfo] for details.
   Future<List<IosCameraLensInfo>> getIosCameraInfo() async {
     if (_iosCache != null) return _iosCache!;
     if (!Platform.isIOS) {
-      throw UnsupportedError('iOS camera info is not available on this platform');
+      throw UnsupportedError(
+          'iOS camera info is not available on this platform');
     }
     return _iosCache ??= await _iosApi.getCameraInfo();
   }
@@ -72,7 +93,8 @@ class CameraInfo {
   Future<List<AndroidCameraLensInfo>> getAndroidCameraInfo() async {
     if (_androidCache != null) return _androidCache!;
     if (!Platform.isAndroid) {
-      throw UnsupportedError('Android camera info is not available on this platform');
+      throw UnsupportedError(
+          'Android camera info is not available on this platform');
     }
     return _androidCache ??= await _androidApi.getCameraInfo();
   }
@@ -166,17 +188,16 @@ class CameraInfo {
     List<IosCameraLensInfo>? iosInfo,
     List<AndroidCameraLensInfo>? androidInfo,
   }) {
-    assert(
-      iosInfo != null || androidInfo != null,
-      'At least one of the cached values must be provided.',
-    );
     _iosCache = iosInfo;
     _androidCache = androidInfo;
+    _sharedCache = null;
   }
 
   CameraLensInfo _fromIos(IosCameraLensInfo c) => CameraLensInfo(
         position: c.position,
         equivalentFocalLength: c.equivalentFocalLength,
+        equivalentFocalLengthBasis: c.equivalentFocalLengthBasis,
+        equivalentFocalLengthAspectRatio: c.equivalentFocalLengthAspectRatio,
         minZoomFactor: c.minZoomFactor,
         maxZoomFactor: c.maxZoomFactor,
         minExposureOffset: c.minExposureOffset,
@@ -187,6 +208,8 @@ class CameraInfo {
   CameraLensInfo _fromAndroid(AndroidCameraLensInfo c) => CameraLensInfo(
         position: c.position,
         equivalentFocalLength: c.equivalentFocalLength,
+        equivalentFocalLengthBasis: c.equivalentFocalLengthBasis,
+        equivalentFocalLengthAspectRatio: c.equivalentFocalLengthAspectRatio,
         minZoomFactor: c.minZoomFactor,
         maxZoomFactor: c.maxZoomFactor,
         minExposureOffset: c.minExposureOffset,

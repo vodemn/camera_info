@@ -14,17 +14,6 @@ import io.flutter.plugin.common.StandardMessageCodec
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
-/** Which side of the device a camera faces. */
-enum class CameraLensPosition(val raw: Int) {
-  FRONT(0),
-  BACK(1),
-  EXTERNAL(2);
-
-  companion object {
-    fun ofRaw(raw: Int): CameraLensPosition? = values().firstOrNull { it.raw == raw }
-  }
-}
-
 private fun wrapResult(result: Any?): List<Any?> {
   return listOf(result)
 }
@@ -57,10 +46,39 @@ class FlutterError (
   val details: Any? = null
 ) : Throwable()
 
+/** Which side of the device a camera faces. */
+enum class CameraLensPosition(val raw: Int) {
+  FRONT(0),
+  BACK(1),
+  EXTERNAL(2);
+
+  companion object {
+    fun ofRaw(raw: Int): CameraLensPosition? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
+/** Axis convention used for a 35mm-equivalent focal length. */
+enum class EquivalentFocalLengthBasis(val raw: Int) {
+  DIAGONAL(0),
+  HORIZONTAL(1);
+
+  companion object {
+    fun ofRaw(raw: Int): EquivalentFocalLengthBasis? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 /** Generated class from Pigeon that represents data sent in messages. */
 data class IosCameraLensInfo (
-  /** 35mm diagonal-equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView. */
-  val equivalentFocalLength: Double,
+  /** Horizontal 35mm-equivalent focal length, or null when its horizontal FOV is unusable. */
+  val equivalentFocalLength: Double? = null,
+  /** Axis convention for this platform's EFL calculation: always horizontal on iOS. */
+  val equivalentFocalLengthBasis: EquivalentFocalLengthBasis,
+  /** Width / height of the active format used to convert this EFL to another axis. */
+  val equivalentFocalLengthAspectRatio: Double? = null,
   /** Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor. */
   val minZoomFactor: Double,
   /** Maximum zoom factor. AVCaptureDevice.maxAvailableVideoZoomFactor. */
@@ -77,24 +95,28 @@ data class IosCameraLensInfo (
  {
   companion object {
     fun fromList(pigeonVar_list: List<Any?>): IosCameraLensInfo {
-      val equivalentFocalLength = pigeonVar_list[0] as Double
-      val minZoomFactor = pigeonVar_list[1] as Double
-      val maxZoomFactor = pigeonVar_list[2] as Double
-      val minExposureOffset = pigeonVar_list[3] as Double
-      val maxExposureOffset = pigeonVar_list[4] as Double
-      val position = CameraLensPosition.ofRaw(pigeonVar_list[5] as Int)!!
-      val isMain = pigeonVar_list[6] as Boolean
-      return IosCameraLensInfo(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, position, isMain)
+      val equivalentFocalLength = pigeonVar_list[0] as Double?
+      val equivalentFocalLengthBasis = pigeonVar_list[1] as EquivalentFocalLengthBasis
+      val equivalentFocalLengthAspectRatio = pigeonVar_list[2] as Double?
+      val minZoomFactor = pigeonVar_list[3] as Double
+      val maxZoomFactor = pigeonVar_list[4] as Double
+      val minExposureOffset = pigeonVar_list[5] as Double
+      val maxExposureOffset = pigeonVar_list[6] as Double
+      val position = pigeonVar_list[7] as CameraLensPosition
+      val isMain = pigeonVar_list[8] as Boolean
+      return IosCameraLensInfo(equivalentFocalLength, equivalentFocalLengthBasis, equivalentFocalLengthAspectRatio, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, position, isMain)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       equivalentFocalLength,
+      equivalentFocalLengthBasis,
+      equivalentFocalLengthAspectRatio,
       minZoomFactor,
       maxZoomFactor,
       minExposureOffset,
       maxExposureOffset,
-      position.raw,
+      position,
       isMain,
     )
   }
@@ -104,6 +126,10 @@ data class IosCameraLensInfo (
 data class AndroidCameraLensInfo (
   /** 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable. */
   val equivalentFocalLength: Double? = null,
+  /** Axis convention for this platform's EFL calculation: always diagonal on Android. */
+  val equivalentFocalLengthBasis: EquivalentFocalLengthBasis,
+  /** Width / height of the physical sensor used for EFL geometry, when available. */
+  val equivalentFocalLengthAspectRatio: Double? = null,
   /** Minimum zoom factor. 1.0 for the main back camera; null for other cameras. */
   val minZoomFactor: Double? = null,
   /** Maximum zoom factor. CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM. */
@@ -123,25 +149,29 @@ data class AndroidCameraLensInfo (
   companion object {
     fun fromList(pigeonVar_list: List<Any?>): AndroidCameraLensInfo {
       val equivalentFocalLength = pigeonVar_list[0] as Double?
-      val minZoomFactor = pigeonVar_list[1] as Double?
-      val maxZoomFactor = pigeonVar_list[2] as Double
-      val minExposureOffset = pigeonVar_list[3] as Double
-      val maxExposureOffset = pigeonVar_list[4] as Double
-      val exposureOffsetStepSize = pigeonVar_list[5] as Double
-      val position = CameraLensPosition.ofRaw(pigeonVar_list[6] as Int)!!
-      val isMain = pigeonVar_list[7] as Boolean
-      return AndroidCameraLensInfo(equivalentFocalLength, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, exposureOffsetStepSize, position, isMain)
+      val equivalentFocalLengthBasis = pigeonVar_list[1] as EquivalentFocalLengthBasis
+      val equivalentFocalLengthAspectRatio = pigeonVar_list[2] as Double?
+      val minZoomFactor = pigeonVar_list[3] as Double?
+      val maxZoomFactor = pigeonVar_list[4] as Double
+      val minExposureOffset = pigeonVar_list[5] as Double
+      val maxExposureOffset = pigeonVar_list[6] as Double
+      val exposureOffsetStepSize = pigeonVar_list[7] as Double
+      val position = pigeonVar_list[8] as CameraLensPosition
+      val isMain = pigeonVar_list[9] as Boolean
+      return AndroidCameraLensInfo(equivalentFocalLength, equivalentFocalLengthBasis, equivalentFocalLengthAspectRatio, minZoomFactor, maxZoomFactor, minExposureOffset, maxExposureOffset, exposureOffsetStepSize, position, isMain)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       equivalentFocalLength,
+      equivalentFocalLengthBasis,
+      equivalentFocalLengthAspectRatio,
       minZoomFactor,
       maxZoomFactor,
       minExposureOffset,
       maxExposureOffset,
       exposureOffsetStepSize,
-      position.raw,
+      position,
       isMain,
     )
   }
@@ -150,11 +180,21 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
       129.toByte() -> {
+        return (readValue(buffer) as Long?)?.let {
+          CameraLensPosition.ofRaw(it.toInt())
+        }
+      }
+      130.toByte() -> {
+        return (readValue(buffer) as Long?)?.let {
+          EquivalentFocalLengthBasis.ofRaw(it.toInt())
+        }
+      }
+      131.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           IosCameraLensInfo.fromList(it)
         }
       }
-      130.toByte() -> {
+      132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           AndroidCameraLensInfo.fromList(it)
         }
@@ -164,12 +204,20 @@ private open class CameraInfoApiPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is IosCameraLensInfo -> {
+      is CameraLensPosition -> {
         stream.write(129)
+        writeValue(stream, value.raw)
+      }
+      is EquivalentFocalLengthBasis -> {
+        stream.write(130)
+        writeValue(stream, value.raw)
+      }
+      is IosCameraLensInfo -> {
+        stream.write(131)
         writeValue(stream, value.toList())
       }
       is AndroidCameraLensInfo -> {
-        stream.write(130)
+        stream.write(132)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)

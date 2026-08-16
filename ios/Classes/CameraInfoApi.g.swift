@@ -71,10 +71,20 @@ enum CameraLensPosition: Int {
   case external = 2
 }
 
+/// Axis convention used for a 35mm-equivalent focal length.
+enum EquivalentFocalLengthBasis: Int {
+  case diagonal = 0
+  case horizontal = 1
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
 struct IosCameraLensInfo {
-  /// 35mm diagonal-equivalent focal length, derived from AVCaptureDevice.Format.videoFieldOfView.
-  var equivalentFocalLength: Double
+  /// Horizontal 35mm-equivalent focal length, or null when its horizontal FOV is unusable.
+  var equivalentFocalLength: Double? = nil
+  /// Axis convention for this platform's EFL calculation: always horizontal on iOS.
+  var equivalentFocalLengthBasis: EquivalentFocalLengthBasis
+  /// Width / height of the active format used to convert this EFL to another axis.
+  var equivalentFocalLengthAspectRatio: Double? = nil
   /// Minimum zoom factor. AVCaptureDevice.minAvailableVideoZoomFactor.
   var minZoomFactor: Double
   /// Maximum zoom factor. AVCaptureDevice.maxAvailableVideoZoomFactor.
@@ -91,16 +101,20 @@ struct IosCameraLensInfo {
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> IosCameraLensInfo? {
-    let equivalentFocalLength = pigeonVar_list[0] as! Double
-    let minZoomFactor = pigeonVar_list[1] as! Double
-    let maxZoomFactor = pigeonVar_list[2] as! Double
-    let minExposureOffset = pigeonVar_list[3] as! Double
-    let maxExposureOffset = pigeonVar_list[4] as! Double
-    let position = CameraLensPosition(rawValue: pigeonVar_list[5] as! Int)!
-    let isMain = pigeonVar_list[6] as! Bool
+    let equivalentFocalLength: Double? = nilOrValue(pigeonVar_list[0])
+    let equivalentFocalLengthBasis = pigeonVar_list[1] as! EquivalentFocalLengthBasis
+    let equivalentFocalLengthAspectRatio: Double? = nilOrValue(pigeonVar_list[2])
+    let minZoomFactor = pigeonVar_list[3] as! Double
+    let maxZoomFactor = pigeonVar_list[4] as! Double
+    let minExposureOffset = pigeonVar_list[5] as! Double
+    let maxExposureOffset = pigeonVar_list[6] as! Double
+    let position = pigeonVar_list[7] as! CameraLensPosition
+    let isMain = pigeonVar_list[8] as! Bool
 
     return IosCameraLensInfo(
       equivalentFocalLength: equivalentFocalLength,
+      equivalentFocalLengthBasis: equivalentFocalLengthBasis,
+      equivalentFocalLengthAspectRatio: equivalentFocalLengthAspectRatio,
       minZoomFactor: minZoomFactor,
       maxZoomFactor: maxZoomFactor,
       minExposureOffset: minExposureOffset,
@@ -112,11 +126,13 @@ struct IosCameraLensInfo {
   func toList() -> [Any?] {
     return [
       equivalentFocalLength,
+      equivalentFocalLengthBasis,
+      equivalentFocalLengthAspectRatio,
       minZoomFactor,
       maxZoomFactor,
       minExposureOffset,
       maxExposureOffset,
-      position.rawValue,
+      position,
       isMain,
     ]
   }
@@ -126,6 +142,10 @@ struct IosCameraLensInfo {
 struct AndroidCameraLensInfo {
   /// 35mm equivalent focal length. Null if LENS_INFO_AVAILABLE_FOCAL_LENGTHS or SENSOR_INFO_PHYSICAL_SIZE is unavailable.
   var equivalentFocalLength: Double? = nil
+  /// Axis convention for this platform's EFL calculation: always diagonal on Android.
+  var equivalentFocalLengthBasis: EquivalentFocalLengthBasis
+  /// Width / height of the physical sensor used for EFL geometry, when available.
+  var equivalentFocalLengthAspectRatio: Double? = nil
   /// Minimum zoom factor. 1.0 for the main back camera; null for other cameras.
   var minZoomFactor: Double? = nil
   /// Maximum zoom factor. CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM.
@@ -145,16 +165,20 @@ struct AndroidCameraLensInfo {
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> AndroidCameraLensInfo? {
     let equivalentFocalLength: Double? = nilOrValue(pigeonVar_list[0])
-    let minZoomFactor: Double? = nilOrValue(pigeonVar_list[1])
-    let maxZoomFactor = pigeonVar_list[2] as! Double
-    let minExposureOffset = pigeonVar_list[3] as! Double
-    let maxExposureOffset = pigeonVar_list[4] as! Double
-    let exposureOffsetStepSize = pigeonVar_list[5] as! Double
-    let position = CameraLensPosition(rawValue: pigeonVar_list[6] as! Int)!
-    let isMain = pigeonVar_list[7] as! Bool
+    let equivalentFocalLengthBasis = pigeonVar_list[1] as! EquivalentFocalLengthBasis
+    let equivalentFocalLengthAspectRatio: Double? = nilOrValue(pigeonVar_list[2])
+    let minZoomFactor: Double? = nilOrValue(pigeonVar_list[3])
+    let maxZoomFactor = pigeonVar_list[4] as! Double
+    let minExposureOffset = pigeonVar_list[5] as! Double
+    let maxExposureOffset = pigeonVar_list[6] as! Double
+    let exposureOffsetStepSize = pigeonVar_list[7] as! Double
+    let position = pigeonVar_list[8] as! CameraLensPosition
+    let isMain = pigeonVar_list[9] as! Bool
 
     return AndroidCameraLensInfo(
       equivalentFocalLength: equivalentFocalLength,
+      equivalentFocalLengthBasis: equivalentFocalLengthBasis,
+      equivalentFocalLengthAspectRatio: equivalentFocalLengthAspectRatio,
       minZoomFactor: minZoomFactor,
       maxZoomFactor: maxZoomFactor,
       minExposureOffset: minExposureOffset,
@@ -167,12 +191,14 @@ struct AndroidCameraLensInfo {
   func toList() -> [Any?] {
     return [
       equivalentFocalLength,
+      equivalentFocalLengthBasis,
+      equivalentFocalLengthAspectRatio,
       minZoomFactor,
       maxZoomFactor,
       minExposureOffset,
       maxExposureOffset,
       exposureOffsetStepSize,
-      position.rawValue,
+      position,
       isMain,
     ]
   }
@@ -182,8 +208,20 @@ private class CameraInfoApiPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
     case 129:
-      return IosCameraLensInfo.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return CameraLensPosition(rawValue: enumResultAsInt)
+      }
+      return nil
     case 130:
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return EquivalentFocalLengthBasis(rawValue: enumResultAsInt)
+      }
+      return nil
+    case 131:
+      return IosCameraLensInfo.fromList(self.readValue() as! [Any?])
+    case 132:
       return AndroidCameraLensInfo.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -193,11 +231,17 @@ private class CameraInfoApiPigeonCodecReader: FlutterStandardReader {
 
 private class CameraInfoApiPigeonCodecWriter: FlutterStandardWriter {
   override func writeValue(_ value: Any) {
-    if let value = value as? IosCameraLensInfo {
+    if let value = value as? CameraLensPosition {
       super.writeByte(129)
+      super.writeValue(value.rawValue)
+    } else if let value = value as? EquivalentFocalLengthBasis {
+      super.writeByte(130)
+      super.writeValue(value.rawValue)
+    } else if let value = value as? IosCameraLensInfo {
+      super.writeByte(131)
       super.writeValue(value.toList())
     } else if let value = value as? AndroidCameraLensInfo {
-      super.writeByte(130)
+      super.writeByte(132)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)

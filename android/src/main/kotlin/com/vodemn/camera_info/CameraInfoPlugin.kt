@@ -5,7 +5,6 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
-import kotlin.math.pow
 import kotlin.math.sqrt
 
 class CameraInfoPlugin : FlutterPlugin, CameraInfoAndroidHostApi {
@@ -45,9 +44,27 @@ class CameraInfoPlugin : FlutterPlugin, CameraInfoAndroidHostApi {
       val sensorSize    = c.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)
       val maxZoom       = c.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM)
       val focalLength   = focalLengths?.firstOrNull()
-      val efl = if (focalLength != null && sensorSize != null) {
-        43.27 * focalLength / sqrt(sensorSize.height.pow(2) + sensorSize.width.pow(2))
+      val focalLengthMm = focalLength?.toDouble()
+      val sensorWidth = sensorSize?.width?.toDouble()
+      val sensorHeight = sensorSize?.height?.toDouble()
+      val sensorAspectRatio = if (
+        sensorWidth != null && sensorHeight != null &&
+          sensorWidth.isFinite() && sensorHeight.isFinite() &&
+          sensorWidth > 0 && sensorHeight > 0
+      ) {
+        (sensorWidth / sensorHeight).takeIf { it.isFinite() && it > 0 }
       } else null
+      val efl = if (
+        focalLengthMm != null && focalLengthMm.isFinite() && focalLengthMm > 0 &&
+          sensorWidth != null && sensorHeight != null &&
+          sensorWidth.isFinite() && sensorHeight.isFinite() &&
+          sensorWidth > 0 && sensorHeight > 0
+      ) {
+        val sensorDiagonal = sqrt(sensorWidth * sensorWidth + sensorHeight * sensorHeight)
+        (sqrt(36.0 * 36.0 + 24.0 * 24.0) * focalLengthMm / sensorDiagonal)
+          .takeIf { it.isFinite() && it > 0 }
+      } else null
+      val eflBasis = EquivalentFocalLengthBasis.DIAGONAL
 
       val cameraFeatures = c.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
       val isDepth = cameraFeatures?.contains(
@@ -73,6 +90,8 @@ class CameraInfoPlugin : FlutterPlugin, CameraInfoAndroidHostApi {
         appendLine("  focalLengths (mm)   : ${focalLengths?.toList()}")
         appendLine("  sensorSize          : $sensorSize")
         appendLine("  efl (35mm equiv mm) : $efl")
+        appendLine("  efl basis           : $eflBasis")
+        appendLine("  efl aspect ratio    : $sensorAspectRatio")
         appendLine("  maxDigitalZoom      : $maxZoom")
         val aeStep  = c.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP)
         val aeRange = c.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE)
@@ -90,6 +109,8 @@ class CameraInfoPlugin : FlutterPlugin, CameraInfoAndroidHostApi {
       }
       AndroidCameraLensInfo(
         equivalentFocalLength = efl,
+        equivalentFocalLengthBasis = eflBasis,
+        equivalentFocalLengthAspectRatio = sensorAspectRatio,
         minZoomFactor = if (id == mainBackId) 1.0 else null,
         maxZoomFactor = maxZoom?.toDouble() ?: 1.0,
         minExposureOffset = (aeRange?.lower?.toDouble() ?: 0.0) * step,
