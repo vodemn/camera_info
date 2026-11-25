@@ -2,8 +2,13 @@
 
 ## v0.4.0 — Unreleased
 
+### Features
+
+- Add Swift Package Manager support for iOS alongside CocoaPods.
+
 ### Breaking changes
 
+- Require Flutter 3.41 and Dart 3.11 or later.
 - Make iOS horizontal equivalent focal length nullable when its horizontal FOV is unusable.
 - Add the required `EquivalentFocalLengthBasis` and `equivalentFocalLengthAspectRatio`; iOS reports its native horizontal convention and Android reports its diagonal convention.
 

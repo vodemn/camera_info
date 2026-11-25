@@ -6,7 +6,7 @@ import 'package:pigeon/pigeon.dart';
   kotlinOut:
       'android/src/main/kotlin/com/vodemn/camera_info/CameraInfoApi.g.kt',
   kotlinOptions: KotlinOptions(package: 'com.vodemn.camera_info'),
-  swiftOut: 'ios/Classes/CameraInfoApi.g.swift',
+  swiftOut: 'ios/camera_info/Sources/camera_info/CameraInfoApi.g.swift',
   swiftOptions: SwiftOptions(),
 ))
 

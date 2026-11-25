@@ -15,7 +15,8 @@ Pod::Spec.new do |s|
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Vodemn' => 'vodemn@users.noreply.github.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'camera_info/Sources/camera_info/**/*.swift'
+  s.resource_bundles = { 'camera_info_privacy' => ['camera_info/Sources/camera_info/PrivacyInfo.xcprivacy'] }
   s.dependency 'Flutter'
   s.platform = :ios, '12.0'
 
