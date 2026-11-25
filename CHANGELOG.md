@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.0 — 2026-11-25
+
+### Features
+
+- Expose EFL basis and geometry
+- Add Swift Package Manager support for iOS
+# Changelog
+
 ## v0.4.0 — Unreleased
 
 ### Features
